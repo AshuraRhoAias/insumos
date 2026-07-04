@@ -327,6 +327,13 @@ a { color: inherit; }
 
 .btn-sm { padding: 6px 10px; font-size: 12px; }
 
+.btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  filter: none;
+}
+.btn:disabled:hover { filter: none; }
+
 .card {
   background: var(--surface);
   border: 1px solid var(--line);

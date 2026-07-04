@@ -1,11 +1,19 @@
 import { useState } from "react";
-import { documentos } from "../data/mockData";
 import { EstadoBadge } from "../components/UI";
 import { downloadTextFile } from "../components/Charts";
+import { useApp } from "../context/AppContext";
+import { useData } from "../context/DataContext";
+
+const PUEDE_FIRMAR = ["Director", "Supervisor", "Administrador"];
 
 export default function Oficios() {
+  const { role } = useApp();
+  const { documentos, firmarOficio } = useData();
   const [selected, setSelected] = useState(null);
   const [feedback, setFeedback] = useState("");
+  const puedeFirmar = PUEDE_FIRMAR.includes(role);
+
+  const pendientesFirma = documentos.filter((d) => d.estado === "Pendiente de firma");
 
   function descargar(doc) {
     const contenido = [
@@ -16,10 +24,18 @@ export default function Oficios() {
       `Fecha de emisión: ${doc.fecha}`,
       `Hash de integridad: 3f9a...${doc.folio.slice(-4).toLowerCase()}`,
       `Estado: ${doc.estado}`,
+      ...(doc.firmadoPor ? [`Firmado por: ${doc.firmadoPor}`] : []),
     ].join("\n");
     downloadTextFile(`${doc.folio}.txt`, contenido);
     setFeedback(`${doc.folio} descargado.`);
     setTimeout(() => setFeedback(""), 3000);
+  }
+
+  function firmar(doc) {
+    firmarOficio(doc.folio);
+    setFeedback(`${doc.folio} firmado. La solicitud ${doc.solicitudFolio} ya puede pasar a Almacén para su entrega.`);
+    setSelected(null);
+    setTimeout(() => setFeedback(""), 4500);
   }
 
   return (
@@ -32,6 +48,13 @@ export default function Oficios() {
       </div>
 
       {feedback && <div className="toast">✓ {feedback}</div>}
+
+      {pendientesFirma.length > 0 && (
+        <div className="card card-pad" style={{ borderColor: "rgba(192,138,30,0.4)", background: "var(--warning-tint)", marginBottom: 18 }}>
+          <strong style={{ fontSize: 13 }}>✎ {pendientesFirma.length} oficio(s) de requerimiento pendientes de firma</strong>{" "}
+          <span style={{ fontSize: 13 }}>— deben firmarse antes de que Almacén pueda entregar el insumo validado.</span>
+        </div>
+      )}
 
       <div className="card">
         <table>
@@ -48,6 +71,9 @@ export default function Oficios() {
                 <td><EstadoBadge estado={d.estado} /></td>
                 <td>
                   <button className="btn btn-ghost btn-sm" onClick={() => setSelected(d)}>Vista previa</button>
+                  {d.estado === "Pendiente de firma" && puedeFirmar && (
+                    <button className="btn btn-primary btn-sm" style={{ marginLeft: 6 }} onClick={() => firmar(d)}>Firmar</button>
+                  )}
                 </td>
               </tr>
             ))}
@@ -79,11 +105,20 @@ export default function Oficios() {
                 Fecha de emisión: {selected.fecha}<br />
                 Hash de integridad: 3f9a...{selected.folio.slice(-4).toLowerCase()}<br />
                 Estado: {selected.estado}
+                {selected.firmadoPor && <>
+                  <br />Firmado por: {selected.firmadoPor}
+                </>}
               </div>
 
               <div className="kv"><span className="k">Estado del documento</span><span className="v"><EstadoBadge estado={selected.estado} /></span></div>
-              <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
-                <button className="btn btn-primary" onClick={() => descargar(selected)}>Descargar PDF</button>
+              {selected.estado === "Pendiente de firma" && !puedeFirmar && (
+                <p style={{ fontSize: 12, color: "var(--muted)" }}>Tu rol activo ({role}) no tiene permiso para firmar este oficio.</p>
+              )}
+              <div style={{ display: "flex", gap: 8, marginTop: 14, flexWrap: "wrap" }}>
+                {selected.estado === "Pendiente de firma" && puedeFirmar && (
+                  <button className="btn btn-primary" onClick={() => firmar(selected)}>Firmar oficio</button>
+                )}
+                <button className="btn btn-ghost" onClick={() => descargar(selected)}>Descargar PDF</button>
                 <button className="btn btn-ghost" onClick={() => window.print()}>Imprimir</button>
                 <button className="btn btn-ghost" onClick={() => setSelected(null)}>Cerrar</button>
               </div>

@@ -18,14 +18,21 @@ const AppContext = createContext(null);
 
 export function AppProvider({ children }) {
   const [role, setRole] = useState("Administrador");
-  const [user] = useState({
+  const [user, setUser] = useState({
     nombre: "Ana Torres Medina",
     empleado: "EMP-04821",
+    correo: "ana.torres@alcaldia.gob.mx",
+    telefono: "",
     dependencia: "Secretaría de Obras y Servicios",
     area: "Recursos Materiales",
+    notificacionesCorreo: true,
   });
 
-  const value = useMemo(() => ({ role, setRole, roles: ROLES, user }), [role, user]);
+  function actualizarUsuario(cambios) {
+    setUser((prev) => ({ ...prev, ...cambios }));
+  }
+
+  const value = useMemo(() => ({ role, setRole, roles: ROLES, user, actualizarUsuario }), [role, user]);
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 }

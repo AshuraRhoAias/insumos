@@ -7,6 +7,7 @@ import {
   usuarios as usuariosIniciales,
   dependencias as dependenciasIniciales,
   bitacora as bitacoraIniciales,
+  documentos as documentosIniciales,
 } from "../data/mockData";
 
 // Store en memoria que simula lo que en el sistema real sería la API.
@@ -25,6 +26,15 @@ function randHash() {
   return Math.random().toString(16).slice(2, 10);
 }
 
+function nextOficioFolio(documentos, prefijo) {
+  const nums = documentos
+    .filter((d) => d.folio.startsWith(prefijo))
+    .map((d) => Number(d.folio.split("-").pop()))
+    .filter((n) => !Number.isNaN(n));
+  const next = (nums.length ? Math.max(...nums) : 0) + 1;
+  return `${prefijo}-2026-${String(next).padStart(5, "0")}`;
+}
+
 export function DataProvider({ children }) {
   const { user, role } = useApp();
   const [solicitudes, setSolicitudes] = useState(solicitudesIniciales);
@@ -33,6 +43,7 @@ export function DataProvider({ children }) {
   const [usuarios, setUsuarios] = useState(usuariosIniciales);
   const [dependencias, setDependencias] = useState(dependenciasIniciales);
   const [bitacora, setBitacora] = useState(bitacoraIniciales);
+  const [documentos, setDocumentos] = useState(documentosIniciales);
   const [carrito, setCarrito] = useState([]);
 
   function addBitacora(accion, objeto, alerta = false) {
@@ -102,6 +113,29 @@ export function DataProvider({ children }) {
       Entregada: "Confirmar entrega",
     };
     addBitacora(acciones[estado] || "Actualizar", `Solicitud ${folio}`);
+    if (estado === "Aprobada") {
+      crearOficioRequerimiento(folio);
+    }
+  }
+
+  // ---------- Oficios y firmas ----------
+  // Una vez validado (aprobado) el insumo, se genera el oficio de
+  // requerimiento; debe firmarse antes de que Almacén pueda entregarlo.
+  function crearOficioRequerimiento(solicitudFolio) {
+    setDocumentos((prev) => {
+      const folio = nextOficioFolio(prev, "REQ");
+      return [{ folio, tipo: "Oficio de requerimiento", solicitudFolio, estado: "Pendiente de firma", fecha: new Date().toISOString().slice(0, 10) }, ...prev];
+    });
+    addBitacora("Generar", `Oficio de requerimiento para ${solicitudFolio}`);
+  }
+
+  function firmarOficio(folio) {
+    setDocumentos((prev) => prev.map((d) => (d.folio === folio ? { ...d, estado: "Firmado", firmadoPor: user.nombre } : d)));
+    addBitacora("Firmar", `Oficio ${folio}`);
+  }
+
+  function oficioRequerimientoDe(solicitudFolio) {
+    return documentos.find((d) => d.tipo === "Oficio de requerimiento" && d.solicitudFolio === solicitudFolio);
   }
 
   function escalarSolicitud(folio) {
@@ -110,7 +144,11 @@ export function DataProvider({ children }) {
 
   function confirmarEntrega(folio) {
     const sol = solicitudes.find((s) => s.folio === folio);
-    if (!sol) return;
+    if (!sol) return { ok: false, reason: "Solicitud no encontrada." };
+    const oficio = oficioRequerimientoDe(folio);
+    if (!oficio || oficio.estado !== "Firmado") {
+      return { ok: false, reason: "El oficio de requerimiento debe firmarse antes de poder entregar." };
+    }
     if (sol.items && sol.items.length > 0) {
       setInsumos((prev) =>
         prev.map((i) => {
@@ -136,6 +174,7 @@ export function DataProvider({ children }) {
       ]);
     }
     cambiarEstadoSolicitud(folio, "Entregada");
+    return { ok: true };
   }
 
   // ---------- Almacén ----------
@@ -157,6 +196,11 @@ export function DataProvider({ children }) {
     setInsumos((prev) => [nuevo, ...prev]);
     addBitacora("Crear", `Insumo ${nuevo.nombre}`);
     return nuevo;
+  }
+
+  function actualizarInsumo(id, cambios) {
+    setInsumos((prev) => prev.map((i) => (i.id === id ? { ...i, ...cambios } : i)));
+    addBitacora("Editar", `Insumo ${id}`);
   }
 
   // ---------- Usuarios ----------
@@ -207,6 +251,7 @@ export function DataProvider({ children }) {
       usuarios,
       dependencias,
       bitacora,
+      documentos,
       carrito,
       agregarCarrito,
       actualizarCantidadCarrito,
@@ -218,15 +263,18 @@ export function DataProvider({ children }) {
       confirmarEntrega,
       registrarMovimiento,
       crearInsumo,
+      actualizarInsumo,
       crearUsuario,
       cambiarEstadoUsuario,
       crearDependencia,
       actualizarDependencia,
       cambiarEstadoDependencia,
       agregarSubarea,
+      firmarOficio,
+      oficioRequerimientoDe,
       addBitacora,
     }),
-    [solicitudes, aprobacionesPendientes, insumos, movimientos, usuarios, dependencias, bitacora, carrito]
+    [solicitudes, aprobacionesPendientes, insumos, movimientos, usuarios, dependencias, bitacora, documentos, carrito]
   );
 
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>;

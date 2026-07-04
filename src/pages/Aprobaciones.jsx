@@ -20,9 +20,10 @@ export default function Aprobaciones() {
   function resolver(estado, label) {
     if (!selected) return;
     cambiarEstadoSolicitud(selected.folio, estado, estado === "Rechazada" || estado === "Corrección" ? { motivo } : {});
-    setFeedback(`${label} ${selected.folio}.`);
+    const extra = estado === "Aprobada" ? " Se generó el oficio de requerimiento, pendiente de firma." : "";
+    setFeedback(`${label} ${selected.folio}.${extra}`);
     setMotivo("");
-    setTimeout(() => setFeedback(""), 3500);
+    setTimeout(() => setFeedback(""), 4500);
   }
 
   function escalar() {

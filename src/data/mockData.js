@@ -223,6 +223,8 @@ export function estadoBadgeClass(estado) {
     Suspendido: "badge-warning",
     Vigente: "badge-success",
     Sustituido: "badge-neutral",
+    "Pendiente de firma": "badge-warning",
+    Firmado: "badge-success",
   };
   return map[estado] || "badge-neutral";
 }
