@@ -195,6 +195,20 @@ export const PERIODOS = [
   { id: "anio", label: "Por año" },
 ];
 
+/** Unidades solicitadas (demanda) estimadas para un insumo en el periodo. */
+export function demandaInsumo(insumoId) {
+  return seededValue(hashSeed(insumoId), 20, 480);
+}
+
+/** Tiempo promedio de atención (en horas) y solicitudes en trámite por área. */
+export function tiempoAtencionPorArea(area) {
+  const base = hashSeed(area + "::tiempo");
+  return {
+    horasPromedio: seededValue(base, 8, 96) / 10,
+    enTramite: seededValue(base * 1.7, 1, 14),
+  };
+}
+
 export function estadoBadgeClass(estado) {
   const map = {
     Pendiente: "badge-warning",

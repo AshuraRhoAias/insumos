@@ -2,13 +2,15 @@ import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useApp } from "../context/AppContext";
 import { useData } from "../context/DataContext";
-import { consumoTotalPorPeriodo, PERIODOS } from "../data/mockData";
+import { consumoTotalPorPeriodo, consumoPorDependencia, PERIODOS } from "../data/mockData";
 import { EstadoBadge, money } from "../components/UI";
 import { BarChart } from "../components/Charts";
 
+const ESTADOS_ORDEN = ["Borrador", "Pendiente", "Corrección", "Aprobada", "Rechazada", "Entregada"];
+
 export default function Dashboard() {
   const { role, user } = useApp();
-  const { solicitudes, insumos, bitacora } = useData();
+  const { solicitudes, insumos, dependencias, bitacora } = useData();
   const navigate = useNavigate();
   const [periodo, setPeriodo] = useState("mes");
 
@@ -69,6 +71,29 @@ export default function Dashboard() {
   const consumo = consumoTotalPorPeriodo(periodo);
   const notificaciones = bitacora.slice(0, 4);
 
+  // 2. Consumo anual por dependencia
+  const consumoDependencias = useMemo(
+    () => dependencias.map((d) => ({ clave: d.clave, total: consumoPorDependencia(d.clave, "mes").reduce((s, m) => s + m.monto, 0) })),
+    [dependencias]
+  );
+
+  // 3. Solicitudes por estado (dinámico, refleja acciones de la sesión)
+  const porEstado = useMemo(() => {
+    const conteo = Object.fromEntries(ESTADOS_ORDEN.map((e) => [e, 0]));
+    solicitudes.forEach((s) => { conteo[s.estado] = (conteo[s.estado] || 0) + 1; });
+    return ESTADOS_ORDEN.map((e) => ({ estado: e, total: conteo[e] }));
+  }, [solicitudes]);
+
+  // 4. Presupuesto asignado vs ejercido por dependencia (dinámico)
+  const presupuestoDeps = dependencias;
+
+  // 5. Insumos por categoría (dinámico)
+  const porCategoria = useMemo(() => {
+    const grupos = {};
+    insumos.forEach((i) => { grupos[i.categoria] = (grupos[i.categoria] || 0) + i.stock; });
+    return Object.entries(grupos).map(([categoria, stock]) => ({ categoria, stock }));
+  }, [insumos]);
+
   return (
     <div>
       <div className="page-header">
@@ -94,17 +119,92 @@ export default function Dashboard() {
         ))}
       </div>
 
-      <div className="split">
+      <div className="card card-pad" style={{ marginBottom: 20 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
+          <h3 style={{ marginTop: 0, fontSize: 14 }}>1 · Consumo — todas las áreas</h3>
+          <select className="input" style={{ maxWidth: 150 }} value={periodo} onChange={(e) => setPeriodo(e.target.value)}>
+            {PERIODOS.map((p) => (
+              <option key={p.id} value={p.id}>{p.label}</option>
+            ))}
+          </select>
+        </div>
+        <BarChart labels={consumo.map((m) => m.label)} series={[{ name: "Consumo", data: consumo.map((m) => m.monto) }]} formatValue={money} height={170} />
+      </div>
+
+      <div className="grid grid-2" style={{ marginBottom: 20 }}>
         <div className="card card-pad">
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
-            <h3 style={{ marginTop: 0, fontSize: 14 }}>Consumo — todas las áreas</h3>
-            <select className="input" style={{ maxWidth: 150 }} value={periodo} onChange={(e) => setPeriodo(e.target.value)}>
-              {PERIODOS.map((p) => (
-                <option key={p.id} value={p.id}>{p.label}</option>
-              ))}
-            </select>
+          <h3 style={{ marginTop: 0, fontSize: 14 }}>2 · Consumo anual por dependencia</h3>
+          <BarChart
+            labels={consumoDependencias.map((d) => d.clave)}
+            series={[{ name: "Consumo anual", data: consumoDependencias.map((d) => d.total) }]}
+            formatValue={money}
+            height={170}
+          />
+        </div>
+
+        <div className="card card-pad">
+          <h3 style={{ marginTop: 0, fontSize: 14 }}>3 · Solicitudes por estado</h3>
+          <BarChart
+            labels={porEstado.map((e) => e.estado)}
+            series={[{ name: "Solicitudes", data: porEstado.map((e) => e.total) }]}
+            height={170}
+          />
+        </div>
+      </div>
+
+      <div className="grid grid-2" style={{ marginBottom: 20 }}>
+        <div className="card card-pad">
+          <h3 style={{ marginTop: 0, fontSize: 14 }}>4 · Presupuesto asignado vs. ejercido</h3>
+          <BarChart
+            labels={presupuestoDeps.map((d) => d.clave)}
+            series={[
+              { name: "Asignado", data: presupuestoDeps.map((d) => d.presupuesto) },
+              { name: "Ejercido", data: presupuestoDeps.map((d) => d.ejercido) },
+            ]}
+            formatValue={money}
+            height={170}
+          />
+        </div>
+
+        <div className="card card-pad">
+          <h3 style={{ marginTop: 0, fontSize: 14 }}>5 · Stock por categoría de insumo</h3>
+          <BarChart
+            labels={porCategoria.map((c) => c.categoria)}
+            series={[{ name: "Stock", data: porCategoria.map((c) => c.stock) }]}
+            height={170}
+          />
+        </div>
+      </div>
+
+      <div className="split">
+        <div className="card">
+          <div className="card-pad" style={{ paddingBottom: 0 }}>
+            <h3 style={{ marginTop: 0, fontSize: 14 }}>Solicitudes recientes</h3>
           </div>
-          <BarChart labels={consumo.map((m) => m.label)} series={[{ name: "Consumo", data: consumo.map((m) => m.monto) }]} formatValue={money} height={170} />
+          <table>
+            <thead>
+              <tr>
+                <th>Folio</th>
+                <th>Solicitante</th>
+                <th>Dependencia</th>
+                <th>Fecha</th>
+                <th>Monto</th>
+                <th>Estado</th>
+              </tr>
+            </thead>
+            <tbody>
+              {solicitudes.slice(0, 5).map((s) => (
+                <tr key={s.folio}>
+                  <td className="mono">{s.folio}</td>
+                  <td>{s.solicitante}</td>
+                  <td>{s.dependencia}</td>
+                  <td>{s.fecha}</td>
+                  <td>{money(s.monto)}</td>
+                  <td><EstadoBadge estado={s.estado} /></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
 
         <div className="card card-pad">
@@ -121,36 +221,6 @@ export default function Dashboard() {
             </ul>
           )}
         </div>
-      </div>
-
-      <div className="card" style={{ marginTop: 20 }}>
-        <div className="card-pad" style={{ paddingBottom: 0 }}>
-          <h3 style={{ marginTop: 0, fontSize: 14 }}>Solicitudes recientes</h3>
-        </div>
-        <table>
-          <thead>
-            <tr>
-              <th>Folio</th>
-              <th>Solicitante</th>
-              <th>Dependencia</th>
-              <th>Fecha</th>
-              <th>Monto</th>
-              <th>Estado</th>
-            </tr>
-          </thead>
-          <tbody>
-            {solicitudes.slice(0, 5).map((s) => (
-              <tr key={s.folio}>
-                <td className="mono">{s.folio}</td>
-                <td>{s.solicitante}</td>
-                <td>{s.dependencia}</td>
-                <td>{s.fecha}</td>
-                <td>{money(s.monto)}</td>
-                <td><EstadoBadge estado={s.estado} /></td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
       </div>
     </div>
   );
