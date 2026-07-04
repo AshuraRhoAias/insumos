@@ -10,8 +10,29 @@ const SECCIONES = [
   "Alertas automáticas",
 ];
 
+const NIVELES_INICIALES = [
+  { nivel: "Nivel 1", rol: "Supervisor de área", monto: "hasta $10,000", tiempo: "48 h" },
+  { nivel: "Nivel 2", rol: "Director de dependencia", monto: "hasta $50,000", tiempo: "72 h" },
+  { nivel: "Nivel 3", rol: "Tesorería", monto: "más de $50,000", tiempo: "96 h" },
+];
+
 export default function Configuracion() {
   const [seccion, setSeccion] = useState(SECCIONES[3]);
+  const [niveles, setNiveles] = useState(NIVELES_INICIALES);
+  const [umbrales, setUmbrales] = useState({ stockMinimo: "15", advertencia: "70%", critico: "95%" });
+  const [feedback, setFeedback] = useState("");
+
+  function agregarNivel() {
+    setNiveles((prev) => [
+      ...prev,
+      { nivel: `Nivel ${prev.length + 1}`, rol: "Por definir", monto: "—", tiempo: "—" },
+    ]);
+  }
+
+  function guardar() {
+    setFeedback("Cambios guardados.");
+    setTimeout(() => setFeedback(""), 3000);
+  }
 
   return (
     <div>
@@ -21,6 +42,8 @@ export default function Configuracion() {
           <p>Catálogos, flujos y parámetros operativos del sistema.</p>
         </div>
       </div>
+
+      {feedback && <div className="toast">✓ {feedback}</div>}
 
       <div className="split">
         <div className="card card-pad">
@@ -45,11 +68,7 @@ export default function Configuracion() {
           {seccion === "Flujos de aprobación" && (
             <>
               <h3 style={{ marginTop: 0, fontSize: 14 }}>Flujos de aprobación</h3>
-              {[
-                { nivel: "Nivel 1", rol: "Supervisor de área", monto: "hasta $10,000", tiempo: "48 h" },
-                { nivel: "Nivel 2", rol: "Director de dependencia", monto: "hasta $50,000", tiempo: "72 h" },
-                { nivel: "Nivel 3", rol: "Tesorería", monto: "más de $50,000", tiempo: "96 h" },
-              ].map((n) => (
+              {niveles.map((n) => (
                 <div key={n.nivel} className="card card-pad" style={{ boxShadow: "none", marginBottom: 10 }}>
                   <div style={{ display: "flex", justifyContent: "space-between" }}>
                     <strong style={{ fontSize: 13 }}>{n.nivel} · {n.rol}</strong>
@@ -62,16 +81,25 @@ export default function Configuracion() {
                   </div>
                 </div>
               ))}
-              <button className="btn btn-ghost btn-sm">+ Agregar nivel</button>
+              <button className="btn btn-ghost btn-sm" onClick={agregarNivel}>+ Agregar nivel</button>
             </>
           )}
 
           {seccion === "Alertas automáticas" && (
             <>
               <h3 style={{ marginTop: 0, fontSize: 14 }}>Umbrales de alerta</h3>
-              <div className="field"><label>Umbral de stock mínimo (predeterminado)</label><input className="input" defaultValue="15" /></div>
-              <div className="field"><label>Alerta de presupuesto — advertencia</label><input className="input" defaultValue="70%" /></div>
-              <div className="field"><label>Alerta de presupuesto — crítico</label><input className="input" defaultValue="95%" /></div>
+              <div className="field">
+                <label>Umbral de stock mínimo (predeterminado)</label>
+                <input className="input" value={umbrales.stockMinimo} onChange={(e) => setUmbrales({ ...umbrales, stockMinimo: e.target.value })} />
+              </div>
+              <div className="field">
+                <label>Alerta de presupuesto — advertencia</label>
+                <input className="input" value={umbrales.advertencia} onChange={(e) => setUmbrales({ ...umbrales, advertencia: e.target.value })} />
+              </div>
+              <div className="field">
+                <label>Alerta de presupuesto — crítico</label>
+                <input className="input" value={umbrales.critico} onChange={(e) => setUmbrales({ ...umbrales, critico: e.target.value })} />
+              </div>
               <label style={{ fontSize: 13, display: "flex", gap: 8, alignItems: "center" }}>
                 <input type="checkbox" defaultChecked /> Enviar alertas por correo electrónico
               </label>
@@ -87,8 +115,8 @@ export default function Configuracion() {
           )}
 
           <div style={{ display: "flex", gap: 8, marginTop: 18 }}>
-            <button className="btn btn-primary">Guardar cambios</button>
-            <button className="btn btn-ghost">Cancelar</button>
+            <button className="btn btn-primary" onClick={guardar}>Guardar cambios</button>
+            <button className="btn btn-ghost" onClick={() => setNiveles(NIVELES_INICIALES)}>Cancelar</button>
           </div>
         </div>
       </div>

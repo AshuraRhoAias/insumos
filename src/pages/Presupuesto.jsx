@@ -1,6 +1,7 @@
-import { dependencias } from "../data/mockData";
+import { useState } from "react";
 import { money, ProgressBar, presupuestoColor } from "../components/UI";
 import { useApp } from "../context/AppContext";
+import { useData } from "../context/DataContext";
 
 function nivel(pct) {
   if (pct > 100) return { label: "Bloqueado", color: "var(--ink)" };
@@ -12,9 +13,24 @@ function nivel(pct) {
 
 export default function Presupuesto() {
   const { role } = useApp();
+  const { dependencias, actualizarDependencia } = useData();
   const canEdit = role === "Tesorería" || role === "Administrador";
   const totalAsignado = dependencias.reduce((s, d) => s + d.presupuesto, 0);
   const totalEjercido = dependencias.reduce((s, d) => s + d.ejercido, 0);
+
+  const [showForm, setShowForm] = useState(false);
+  const [asignacion, setAsignacion] = useState({ depId: dependencias[0]?.id, monto: 0 });
+  const [feedback, setFeedback] = useState("");
+
+  function asignar() {
+    const dep = dependencias.find((d) => d.id === asignacion.depId);
+    if (!dep || Number(asignacion.monto) <= 0) return;
+    actualizarDependencia(dep.id, { presupuesto: dep.presupuesto + Number(asignacion.monto) });
+    setFeedback(`Se asignaron ${money(Number(asignacion.monto))} adicionales a ${dep.nombre}.`);
+    setAsignacion({ depId: dependencias[0]?.id, monto: 0 });
+    setShowForm(false);
+    setTimeout(() => setFeedback(""), 3500);
+  }
 
   return (
     <div>
@@ -23,8 +39,32 @@ export default function Presupuesto() {
           <h2>Presupuesto</h2>
           <p>Asignación, ejercicio y seguimiento del presupuesto por dependencia.</p>
         </div>
-        {canEdit && <button className="btn btn-primary">+ Asignar presupuesto</button>}
+        {canEdit && (
+          <button className="btn btn-primary" onClick={() => setShowForm((s) => !s)}>
+            {showForm ? "Cerrar formulario" : "+ Asignar presupuesto"}
+          </button>
+        )}
       </div>
+
+      {feedback && <div className="toast">✓ {feedback}</div>}
+
+      {showForm && (
+        <div className="card card-pad" style={{ marginBottom: 18 }}>
+          <div className="grid grid-3">
+            <div className="field">
+              <label>Dependencia</label>
+              <select className="input" value={asignacion.depId} onChange={(e) => setAsignacion({ ...asignacion, depId: e.target.value })}>
+                {dependencias.map((d) => <option key={d.id} value={d.id}>{d.nombre}</option>)}
+              </select>
+            </div>
+            <div className="field">
+              <label>Monto a asignar</label>
+              <input type="number" className="input" value={asignacion.monto} onChange={(e) => setAsignacion({ ...asignacion, monto: e.target.value })} />
+            </div>
+          </div>
+          <button className="btn btn-primary" onClick={asignar}>Asignar</button>
+        </div>
+      )}
 
       <div className="grid grid-3" style={{ marginBottom: 20 }}>
         <div className="card card-pad stat-card">

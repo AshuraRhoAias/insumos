@@ -1,9 +1,26 @@
 import { useState } from "react";
 import { documentos } from "../data/mockData";
 import { EstadoBadge } from "../components/UI";
+import { downloadTextFile } from "../components/Charts";
 
 export default function Oficios() {
   const [selected, setSelected] = useState(null);
+  const [feedback, setFeedback] = useState("");
+
+  function descargar(doc) {
+    const contenido = [
+      "MEMBRETE INSTITUCIONAL",
+      `Folio: ${doc.folio}`,
+      `Tipo: ${doc.tipo}`,
+      `Solicitud origen: ${doc.solicitudFolio}`,
+      `Fecha de emisión: ${doc.fecha}`,
+      `Hash de integridad: 3f9a...${doc.folio.slice(-4).toLowerCase()}`,
+      `Estado: ${doc.estado}`,
+    ].join("\n");
+    downloadTextFile(`${doc.folio}.txt`, contenido);
+    setFeedback(`${doc.folio} descargado.`);
+    setTimeout(() => setFeedback(""), 3000);
+  }
 
   return (
     <div>
@@ -13,6 +30,8 @@ export default function Oficios() {
           <p>Documentos oficiales generados por el sistema: oficios, vales y actas, cada uno con folio, hash de integridad y código QR de validación.</p>
         </div>
       </div>
+
+      {feedback && <div className="toast">✓ {feedback}</div>}
 
       <div className="card">
         <table>
@@ -64,8 +83,8 @@ export default function Oficios() {
 
               <div className="kv"><span className="k">Estado del documento</span><span className="v"><EstadoBadge estado={selected.estado} /></span></div>
               <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
-                <button className="btn btn-primary">Descargar PDF</button>
-                <button className="btn btn-ghost">Imprimir</button>
+                <button className="btn btn-primary" onClick={() => descargar(selected)}>Descargar PDF</button>
+                <button className="btn btn-ghost" onClick={() => window.print()}>Imprimir</button>
                 <button className="btn btn-ghost" onClick={() => setSelected(null)}>Cerrar</button>
               </div>
             </div>

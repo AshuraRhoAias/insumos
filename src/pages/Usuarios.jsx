@@ -1,14 +1,41 @@
 import { useState } from "react";
-import { usuarios } from "../data/mockData";
 import { EstadoBadge } from "../components/UI";
+import { useData } from "../context/DataContext";
+
+const NUEVO_INICIAL = {
+  empleado: "",
+  nombre: "",
+  correo: "",
+  dependencia: "Secretaría de Obras y Servicios",
+  area: "",
+  rol: "Solicitante",
+};
 
 export default function Usuarios() {
+  const { usuarios, crearUsuario, cambiarEstadoUsuario } = useData();
   const [query, setQuery] = useState("");
   const [showForm, setShowForm] = useState(false);
+  const [nuevo, setNuevo] = useState(NUEVO_INICIAL);
+  const [feedback, setFeedback] = useState("");
 
   const filtrados = usuarios.filter(
     (u) => u.nombre.toLowerCase().includes(query.toLowerCase()) || u.empleado.toLowerCase().includes(query.toLowerCase())
   );
+
+  const puedeCrear = nuevo.empleado.trim() && nuevo.nombre.trim() && nuevo.correo.trim() && nuevo.area.trim();
+
+  function crear() {
+    if (!puedeCrear) return;
+    crearUsuario(nuevo);
+    setFeedback(`Usuario ${nuevo.nombre} creado y credenciales enviadas a ${nuevo.correo}.`);
+    setNuevo(NUEVO_INICIAL);
+    setShowForm(false);
+    setTimeout(() => setFeedback(""), 4000);
+  }
+
+  function toggleEstado(u) {
+    cambiarEstadoUsuario(u.empleado, u.estado === "Bloqueado" || u.estado === "Suspendido" ? "Activo" : "Suspendido");
+  }
 
   return (
     <div>
@@ -22,27 +49,31 @@ export default function Usuarios() {
         </button>
       </div>
 
+      {feedback && <div className="toast">✓ {feedback}</div>}
+
       {showForm && (
         <div className="card card-pad" style={{ marginBottom: 20 }}>
           <h3 style={{ marginTop: 0, fontSize: 14 }}>Alta de usuario</h3>
           <div className="grid grid-3">
-            <div className="field"><label>Número de empleado</label><input className="input" placeholder="EMP-00000" /></div>
-            <div className="field"><label>Nombre completo</label><input className="input" /></div>
-            <div className="field"><label>Correo institucional</label><input className="input" type="email" /></div>
+            <div className="field"><label>Número de empleado</label><input className="input" placeholder="EMP-00000" value={nuevo.empleado} onChange={(e) => setNuevo({ ...nuevo, empleado: e.target.value })} /></div>
+            <div className="field"><label>Nombre completo</label><input className="input" value={nuevo.nombre} onChange={(e) => setNuevo({ ...nuevo, nombre: e.target.value })} /></div>
+            <div className="field"><label>Correo institucional</label><input className="input" type="email" value={nuevo.correo} onChange={(e) => setNuevo({ ...nuevo, correo: e.target.value })} /></div>
             <div className="field">
               <label>Dependencia</label>
-              <select className="input"><option>Secretaría de Obras y Servicios</option><option>DIF</option><option>Seguridad Pública</option></select>
+              <select className="input" value={nuevo.dependencia} onChange={(e) => setNuevo({ ...nuevo, dependencia: e.target.value })}>
+                <option>Secretaría de Obras y Servicios</option><option>DIF</option><option>Seguridad Pública</option>
+              </select>
             </div>
-            <div className="field"><label>Área</label><input className="input" /></div>
+            <div className="field"><label>Área</label><input className="input" value={nuevo.area} onChange={(e) => setNuevo({ ...nuevo, area: e.target.value })} /></div>
             <div className="field">
               <label>Rol</label>
-              <select className="input">
+              <select className="input" value={nuevo.rol} onChange={(e) => setNuevo({ ...nuevo, rol: e.target.value })}>
                 <option>Solicitante</option><option>Supervisor</option><option>Director</option>
                 <option>Almacén</option><option>Tesorería</option><option>Auditor</option><option>Administrador</option>
               </select>
             </div>
           </div>
-          <button className="btn btn-primary">Crear usuario y enviar credenciales</button>
+          <button className="btn btn-primary" disabled={!puedeCrear} onClick={crear}>Crear usuario y enviar credenciales</button>
         </div>
       )}
 
@@ -65,9 +96,9 @@ export default function Usuarios() {
                 <td><EstadoBadge estado={u.estado} /></td>
                 <td style={{ display: "flex", gap: 6 }}>
                   <button className="btn btn-ghost btn-sm">Editar</button>
-                  {u.estado === "Bloqueado"
-                    ? <button className="btn btn-ghost btn-sm">Desbloquear</button>
-                    : <button className="btn btn-danger btn-sm">Suspender</button>}
+                  {u.estado === "Bloqueado" || u.estado === "Suspendido"
+                    ? <button className="btn btn-ghost btn-sm" onClick={() => toggleEstado(u)}>Desbloquear</button>
+                    : <button className="btn btn-danger btn-sm" onClick={() => toggleEstado(u)}>Suspender</button>}
                 </td>
               </tr>
             ))}

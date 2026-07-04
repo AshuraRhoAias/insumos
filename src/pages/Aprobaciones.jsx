@@ -1,10 +1,36 @@
-import { useState } from "react";
-import { aprobaciones } from "../data/mockData";
+import { useEffect, useState } from "react";
 import { EstadoBadge, money } from "../components/UI";
+import { useData } from "../context/DataContext";
 
 export default function Aprobaciones() {
-  const [selected, setSelected] = useState(aprobaciones[0] || null);
+  const { aprobacionesPendientes, cambiarEstadoSolicitud, escalarSolicitud } = useData();
+  const [selectedFolio, setSelectedFolio] = useState(aprobacionesPendientes[0]?.folio ?? null);
   const [motivo, setMotivo] = useState("");
+  const [feedback, setFeedback] = useState("");
+
+  useEffect(() => {
+    if (!aprobacionesPendientes.find((a) => a.folio === selectedFolio)) {
+      setSelectedFolio(aprobacionesPendientes[0]?.folio ?? null);
+      setMotivo("");
+    }
+  }, [aprobacionesPendientes, selectedFolio]);
+
+  const selected = aprobacionesPendientes.find((a) => a.folio === selectedFolio) || null;
+
+  function resolver(estado, label) {
+    if (!selected) return;
+    cambiarEstadoSolicitud(selected.folio, estado, estado === "Rechazada" || estado === "Corrección" ? { motivo } : {});
+    setFeedback(`${label} ${selected.folio}.`);
+    setMotivo("");
+    setTimeout(() => setFeedback(""), 3500);
+  }
+
+  function escalar() {
+    if (!selected) return;
+    escalarSolicitud(selected.folio);
+    setFeedback(`${selected.folio} escalada al siguiente nivel de aprobación.`);
+    setTimeout(() => setFeedback(""), 3500);
+  }
 
   return (
     <div>
@@ -15,7 +41,9 @@ export default function Aprobaciones() {
         </div>
       </div>
 
-      {aprobaciones.length === 0 ? (
+      {feedback && <div className="toast">✓ {feedback}</div>}
+
+      {aprobacionesPendientes.length === 0 ? (
         <div className="card"><div className="empty-state"><div className="glyph">✓</div>No tienes solicitudes pendientes de aprobación.</div></div>
       ) : (
         <div className="split">
@@ -25,8 +53,8 @@ export default function Aprobaciones() {
                 <tr><th>Folio</th><th>Solicitante</th><th>Monto</th><th>Espera</th><th>Estado</th></tr>
               </thead>
               <tbody>
-                {aprobaciones.map((a) => (
-                  <tr key={a.folio} onClick={() => setSelected(a)} style={{ cursor: "pointer", background: selected?.folio === a.folio ? "var(--surface-sunken)" : undefined }}>
+                {aprobacionesPendientes.map((a) => (
+                  <tr key={a.folio} onClick={() => setSelectedFolio(a.folio)} style={{ cursor: "pointer", background: selectedFolio === a.folio ? "var(--surface-sunken)" : undefined }}>
                     <td className="mono">{a.folio}</td>
                     <td>{a.solicitante}</td>
                     <td>{money(a.monto)}</td>
@@ -59,10 +87,10 @@ export default function Aprobaciones() {
               </div>
 
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                <button className="btn btn-primary">Aprobar</button>
-                <button className="btn btn-danger" disabled={motivo.trim().length === 0}>Rechazar</button>
-                <button className="btn btn-ghost">Solicitar corrección</button>
-                <button className="btn btn-ghost">Escalar</button>
+                <button className="btn btn-primary" onClick={() => resolver("Aprobada", "Aprobada")}>Aprobar</button>
+                <button className="btn btn-danger" disabled={motivo.trim().length === 0} onClick={() => resolver("Rechazada", "Rechazada")}>Rechazar</button>
+                <button className="btn btn-ghost" disabled={motivo.trim().length === 0} onClick={() => resolver("Corrección", "Corrección solicitada para")}>Solicitar corrección</button>
+                <button className="btn btn-ghost" onClick={escalar}>Escalar</button>
               </div>
             </div>
           )}

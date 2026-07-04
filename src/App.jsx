@@ -1,5 +1,6 @@
 import { HashRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AppProvider } from "./context/AppContext";
+import { DataProvider } from "./context/DataContext";
 import Layout from "./components/Layout";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
@@ -20,26 +21,28 @@ import Configuracion from "./pages/Configuracion";
 export default function App() {
   return (
     <AppProvider>
-      <HashRouter>
-        <Routes>
-          <Route path="/" element={<Login />} />
-          <Route element={<Layout />}>
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/dependencias" element={<Dependencias />} />
-            <Route path="/catalogo" element={<Catalogo />} />
-            <Route path="/solicitudes" element={<Solicitudes />} />
-            <Route path="/aprobaciones" element={<Aprobaciones />} />
-            <Route path="/oficios" element={<Oficios />} />
-            <Route path="/almacen" element={<Almacen />} />
-            <Route path="/presupuesto" element={<Presupuesto />} />
-            <Route path="/usuarios" element={<Usuarios />} />
-            <Route path="/reportes" element={<Reportes />} />
-            <Route path="/auditoria" element={<Auditoria />} />
-            <Route path="/configuracion" element={<Configuracion />} />
-          </Route>
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </HashRouter>
+      <DataProvider>
+        <HashRouter>
+          <Routes>
+            <Route path="/" element={<Login />} />
+            <Route element={<Layout />}>
+              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/dependencias" element={<Dependencias />} />
+              <Route path="/catalogo" element={<Catalogo />} />
+              <Route path="/solicitudes" element={<Solicitudes />} />
+              <Route path="/aprobaciones" element={<Aprobaciones />} />
+              <Route path="/oficios" element={<Oficios />} />
+              <Route path="/almacen" element={<Almacen />} />
+              <Route path="/presupuesto" element={<Presupuesto />} />
+              <Route path="/usuarios" element={<Usuarios />} />
+              <Route path="/reportes" element={<Reportes />} />
+              <Route path="/auditoria" element={<Auditoria />} />
+              <Route path="/configuracion" element={<Configuracion />} />
+            </Route>
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </HashRouter>
+      </DataProvider>
     </AppProvider>
   );
 }
