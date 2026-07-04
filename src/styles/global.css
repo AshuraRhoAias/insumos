@@ -654,3 +654,40 @@ tbody tr:hover { background: var(--surface-sunken); }
   margin-top: -6px;
   margin-bottom: 12px;
 }
+
+/* ---------- toast de confirmación ---------- */
+
+.toast {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--success-tint);
+  color: var(--success);
+  border: 1px solid rgba(63,125,88,0.25);
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 16px;
+}
+
+/* ---------- chips de selección múltiple (comparar áreas) ---------- */
+
+.chip-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--line-strong);
+  background: var(--surface);
+  color: var(--ink-soft);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.chip-toggle.active {
+  background: var(--primary-tint);
+  border-color: var(--primary);
+  color: var(--primary);
+}

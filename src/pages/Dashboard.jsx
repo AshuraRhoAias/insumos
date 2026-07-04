@@ -1,56 +1,73 @@
+import { useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useApp } from "../context/AppContext";
-import { solicitudes, insumos, consumoMensual } from "../data/mockData";
+import { useData } from "../context/DataContext";
+import { consumoTotalPorPeriodo, PERIODOS } from "../data/mockData";
 import { EstadoBadge, money } from "../components/UI";
-
-const STATS_BY_ROLE = {
-  Solicitante: [
-    { label: "Mis solicitudes activas", value: "3" },
-    { label: "Pendientes de entrega", value: "1" },
-    { label: "Insumos disponibles", value: insumos.filter((i) => i.stock > 0).length.toString() },
-    { label: "Notificaciones", value: "2" },
-  ],
-  Supervisor: [
-    { label: "Por aprobar en mi área", value: "2" },
-    { label: "Aprobadas esta semana", value: "9" },
-    { label: "Tiempo promedio", value: "1.4 d" },
-    { label: "Urgentes", value: "1" },
-  ],
-  Director: [
-    { label: "Presupuesto ejercido", value: "69%" },
-    { label: "Solicitudes del mes", value: "48" },
-    { label: "Áreas activas", value: "3" },
-    { label: "Alertas presupuestales", value: "1" },
-  ],
-  "Almacén": [
-    { label: "Entregas pendientes hoy", value: "5" },
-    { label: "Insumos en stock bajo", value: insumos.filter((i) => i.stock < i.minimo).length.toString() },
-    { label: "Movimientos hoy", value: "12" },
-    { label: "Agotados", value: insumos.filter((i) => i.stock === 0).length.toString() },
-  ],
-  "Tesorería": [
-    { label: "Presupuesto global", value: money(13150000) },
-    { label: "Ejercido a la fecha", value: money(11015000) },
-    { label: "Dependencias en alerta", value: "2" },
-    { label: "Bloqueadas", value: "0" },
-  ],
-  Auditor: [
-    { label: "Eventos hoy", value: "184" },
-    { label: "Alertas de seguridad", value: "1" },
-    { label: "Accesos fallidos", value: "5" },
-    { label: "Integridad de bitácora", value: "OK" },
-  ],
-  Administrador: [
-    { label: "Usuarios activos", value: "128" },
-    { label: "Solicitudes del mes", value: "312" },
-    { label: "Dependencias", value: "4" },
-    { label: "Alertas del sistema", value: "3" },
-  ],
-};
+import { BarChart } from "../components/Charts";
 
 export default function Dashboard() {
   const { role, user } = useApp();
-  const stats = STATS_BY_ROLE[role] || STATS_BY_ROLE.Administrador;
-  const maxMonto = Math.max(...consumoMensual.map((m) => m.monto));
+  const { solicitudes, insumos, bitacora } = useData();
+  const navigate = useNavigate();
+  const [periodo, setPeriodo] = useState("mes");
+
+  const stats = useMemo(() => {
+    const pendientes = solicitudes.filter((s) => s.estado === "Pendiente" || s.estado === "Corrección");
+    const aprobadasSemana = solicitudes.filter((s) => s.estado === "Aprobada" || s.estado === "Entregada").length;
+    const disponibles = insumos.filter((i) => i.stock > 0).length;
+    const bajos = insumos.filter((i) => i.stock < i.minimo).length;
+    const agotados = insumos.filter((i) => i.stock === 0).length;
+
+    return {
+      Solicitante: [
+        { label: "Mis solicitudes activas", value: pendientes.length.toString() },
+        { label: "Pendientes de entrega", value: solicitudes.filter((s) => s.estado === "Aprobada").length.toString() },
+        { label: "Insumos disponibles", value: disponibles.toString() },
+        { label: "Notificaciones", value: bitacora.length.toString() },
+      ],
+      Supervisor: [
+        { label: "Por aprobar en mi área", value: pendientes.length.toString() },
+        { label: "Aprobadas esta semana", value: aprobadasSemana.toString() },
+        { label: "Tiempo promedio", value: "1.4 d" },
+        { label: "Urgentes", value: solicitudes.filter((s) => s.prioridad === "Urgente" || s.prioridad === "Crítica").length.toString() },
+      ],
+      Director: [
+        { label: "Presupuesto ejercido", value: "69%" },
+        { label: "Solicitudes del mes", value: solicitudes.length.toString() },
+        { label: "Áreas activas", value: "3" },
+        { label: "Alertas presupuestales", value: "1" },
+      ],
+      "Almacén": [
+        { label: "Entregas pendientes hoy", value: solicitudes.filter((s) => s.estado === "Aprobada").length.toString() },
+        { label: "Insumos en stock bajo", value: bajos.toString() },
+        { label: "Movimientos hoy", value: "12" },
+        { label: "Agotados", value: agotados.toString() },
+      ],
+      "Tesorería": [
+        { label: "Presupuesto global", value: money(13150000) },
+        { label: "Ejercido a la fecha", value: money(11015000) },
+        { label: "Dependencias en alerta", value: "2" },
+        { label: "Bloqueadas", value: "0" },
+      ],
+      Auditor: [
+        { label: "Eventos hoy", value: bitacora.length.toString() },
+        { label: "Alertas de seguridad", value: bitacora.filter((b) => b.alerta).length.toString() },
+        { label: "Accesos fallidos", value: "5" },
+        { label: "Integridad de bitácora", value: "OK" },
+      ],
+      Administrador: [
+        { label: "Usuarios activos", value: "128" },
+        { label: "Solicitudes del mes", value: solicitudes.length.toString() },
+        { label: "Dependencias", value: "4" },
+        { label: "Alertas del sistema", value: "3" },
+      ],
+    };
+  }, [solicitudes, insumos, bitacora]);
+
+  const statsRol = stats[role] || stats.Administrador;
+  const consumo = consumoTotalPorPeriodo(periodo);
+  const notificaciones = bitacora.slice(0, 4);
 
   return (
     <div>
@@ -62,48 +79,47 @@ export default function Dashboard() {
             cambian según los permisos configurados para cada rol.
           </p>
         </div>
-        <button className="btn btn-primary">+ Nueva solicitud</button>
+        <button className="btn btn-primary" onClick={() => navigate("/solicitudes", { state: { tab: "nueva" } })}>
+          + Nueva solicitud
+        </button>
       </div>
 
       <div className="grid grid-4" style={{ marginBottom: 22 }}>
-        {stats.map((s) => (
+        {statsRol.map((s) => (
           <div key={s.label} className="card card-pad stat-card">
             <div className="label">{s.label}</div>
             <div className="value">{s.value}</div>
-            <div className="delta">Actualizado hace 4 min</div>
+            <div className="delta">Actualizado en esta sesión</div>
           </div>
         ))}
       </div>
 
       <div className="split">
         <div className="card card-pad">
-          <h3 style={{ marginTop: 0, fontSize: 14 }}>Consumo mensual</h3>
-          <div style={{ display: "flex", alignItems: "flex-end", gap: 14, height: 160, padding: "10px 4px" }}>
-            {consumoMensual.map((m) => (
-              <div key={m.mes} style={{ flex: 1, textAlign: "center" }}>
-                <div
-                  style={{
-                    height: `${(m.monto / maxMonto) * 120}px`,
-                    background: "var(--primary)",
-                    borderRadius: "4px 4px 0 0",
-                    marginBottom: 8,
-                  }}
-                  title={money(m.monto)}
-                />
-                <div style={{ fontSize: 11, color: "var(--muted)" }}>{m.mes}</div>
-              </div>
-            ))}
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
+            <h3 style={{ marginTop: 0, fontSize: 14 }}>Consumo — todas las áreas</h3>
+            <select className="input" style={{ maxWidth: 150 }} value={periodo} onChange={(e) => setPeriodo(e.target.value)}>
+              {PERIODOS.map((p) => (
+                <option key={p.id} value={p.id}>{p.label}</option>
+              ))}
+            </select>
           </div>
+          <BarChart labels={consumo.map((m) => m.label)} series={[{ name: "Consumo", data: consumo.map((m) => m.monto) }]} formatValue={money} height={170} />
         </div>
 
         <div className="card card-pad">
           <h3 style={{ marginTop: 0, fontSize: 14 }}>Notificaciones recientes</h3>
-          <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: 12 }}>
-            <li style={{ fontSize: 13 }}>🔔 Tu solicitud <span className="mono">SOL-2026-00139</span> fue entregada.</li>
-            <li style={{ fontSize: 13 }}>⚠️ Insumo <strong>Uniforme chaleco talla M</strong> está agotado.</li>
-            <li style={{ fontSize: 13 }}>📄 Nuevo oficio de autorización disponible.</li>
-            <li style={{ fontSize: 13 }}>💰 Dependencia SSP alcanzó 95% de presupuesto.</li>
-          </ul>
+          {notificaciones.length === 0 ? (
+            <p style={{ fontSize: 13, color: "var(--muted)" }}>Sin actividad reciente en esta sesión.</p>
+          ) : (
+            <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: 12 }}>
+              {notificaciones.map((n) => (
+                <li key={n.hash} style={{ fontSize: 13 }}>
+                  {n.alerta ? "⚠️" : "🔔"} <strong>{n.accion}</strong> — {n.objeto}
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
       </div>
 

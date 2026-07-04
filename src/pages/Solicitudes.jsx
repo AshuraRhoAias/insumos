@@ -1,32 +1,43 @@
 import { useState } from "react";
-import { solicitudes, insumos } from "../data/mockData";
+import { useLocation } from "react-router-dom";
+import { insumos } from "../data/mockData";
 import { EstadoBadge, money } from "../components/UI";
+import { useData } from "../context/DataContext";
 
-const ESTADOS = ["Todos", "Pendiente", "Aprobada", "Rechazada", "Entregada", "Corrección"];
+const ESTADOS = ["Todos", "Borrador", "Pendiente", "Aprobada", "Rechazada", "Entregada", "Corrección"];
 
 export default function Solicitudes() {
-  const [tab, setTab] = useState("lista");
+  const location = useLocation();
+  const { solicitudes, carrito, agregarCarrito, actualizarCantidadCarrito, quitarCarrito, crearSolicitud } = useData();
+  const [tab, setTab] = useState(location.state?.tab === "nueva" ? "nueva" : "lista");
   const [estadoFiltro, setEstadoFiltro] = useState("Todos");
-  const [carrito, setCarrito] = useState([]);
   const [justificacion, setJustificacion] = useState("");
   const [prioridad, setPrioridad] = useState("Normal");
+  const [detalle, setDetalle] = useState(null);
+  const [feedback, setFeedback] = useState("");
 
   const filtradas = solicitudes.filter((s) => estadoFiltro === "Todos" || s.estado === estadoFiltro);
   const total = carrito.reduce((sum, c) => sum + c.precio * c.cantidad, 0);
-
-  function addToCart(insumo) {
-    setCarrito((prev) => {
-      const exists = prev.find((c) => c.id === insumo.id);
-      if (exists) return prev.map((c) => (c.id === insumo.id ? { ...c, cantidad: c.cantidad + 1 } : c));
-      return [...prev, { ...insumo, cantidad: 1 }];
-    });
-  }
-
-  function updateQty(id, cantidad) {
-    setCarrito((prev) => prev.map((c) => (c.id === id ? { ...c, cantidad: Math.max(1, cantidad) } : c)));
-  }
-
   const canSend = carrito.length > 0 && justificacion.trim().length >= 20;
+
+  function enviar() {
+    if (!canSend) return;
+    const nueva = crearSolicitud({ items: carrito, justificacion, prioridad, estado: "Pendiente" });
+    setJustificacion("");
+    setPrioridad("Normal");
+    setFeedback(`Solicitud ${nueva.folio} enviada y turnada a aprobación.`);
+    setTab("lista");
+    setEstadoFiltro("Todos");
+    setTimeout(() => setFeedback(""), 4000);
+  }
+
+  function guardarBorrador() {
+    if (carrito.length === 0) return;
+    const nueva = crearSolicitud({ items: carrito, justificacion, prioridad, estado: "Borrador" });
+    setJustificacion("");
+    setFeedback(`Borrador ${nueva.folio} guardado.`);
+    setTimeout(() => setFeedback(""), 4000);
+  }
 
   return (
     <div>
@@ -37,9 +48,13 @@ export default function Solicitudes() {
         </div>
       </div>
 
+      {feedback && <div className="toast">✓ {feedback}</div>}
+
       <div className="tabs">
         <button className={"tab " + (tab === "lista" ? "active" : "")} onClick={() => setTab("lista")}>Mis solicitudes</button>
-        <button className={"tab " + (tab === "nueva" ? "active" : "")} onClick={() => setTab("nueva")}>Nueva solicitud</button>
+        <button className={"tab " + (tab === "nueva" ? "active" : "")} onClick={() => setTab("nueva")}>
+          Nueva solicitud {carrito.length > 0 && `(${carrito.length})`}
+        </button>
       </div>
 
       {tab === "lista" && (
@@ -68,7 +83,7 @@ export default function Solicitudes() {
                     <td>{s.prioridad}</td>
                     <td>{money(s.monto)}</td>
                     <td><EstadoBadge estado={s.estado} /></td>
-                    <td><button className="btn btn-ghost btn-sm">Ver detalle</button></td>
+                    <td><button className="btn btn-ghost btn-sm" onClick={() => setDetalle(s)}>Ver detalle</button></td>
                   </tr>
                 ))}
                 {filtradas.length === 0 && (
@@ -91,7 +106,7 @@ export default function Solicitudes() {
                   <div style={{ fontSize: 11.5, color: "var(--muted)", marginBottom: 8 }}>
                     {i.codigo} · Stock: {i.stock} · {money(i.precio)}
                   </div>
-                  <button className="btn btn-ghost btn-sm" onClick={() => addToCart(i)} disabled={i.stock === 0}>
+                  <button className="btn btn-ghost btn-sm" onClick={() => agregarCarrito(i)} disabled={i.stock === 0}>
                     {i.stock === 0 ? "Sin stock" : "+ Agregar"}
                   </button>
                 </div>
@@ -112,9 +127,10 @@ export default function Solicitudes() {
                     className="input"
                     style={{ width: 56, padding: "4px 6px" }}
                     value={c.cantidad}
-                    onChange={(e) => updateQty(c.id, Number(e.target.value))}
+                    onChange={(e) => actualizarCantidadCarrito(c.id, Number(e.target.value))}
                   />
                   {money(c.precio * c.cantidad)}
+                  <button type="button" className="btn btn-ghost btn-sm" onClick={() => quitarCarrito(c.id)}>✕</button>
                 </span>
               </div>
             ))}
@@ -146,11 +162,41 @@ export default function Solicitudes() {
             </div>
 
             <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
-              <button className="btn btn-ghost" style={{ flex: 1, justifyContent: "center" }}>Guardar borrador</button>
-              <button className="btn btn-primary" style={{ flex: 1, justifyContent: "center" }} disabled={!canSend}>
+              <button className="btn btn-ghost" style={{ flex: 1, justifyContent: "center" }} onClick={guardarBorrador} disabled={carrito.length === 0}>
+                Guardar borrador
+              </button>
+              <button className="btn btn-primary" style={{ flex: 1, justifyContent: "center" }} disabled={!canSend} onClick={enviar}>
                 Enviar solicitud
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {detalle && (
+        <div
+          style={{ position: "fixed", inset: 0, background: "rgba(28,36,48,0.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 20 }}
+          onClick={() => setDetalle(null)}
+        >
+          <div className="card card-pad folio-card" style={{ width: 440 }} onClick={(e) => e.stopPropagation()}>
+            <div className="folio-tag">{detalle.folio}</div>
+            <h3 style={{ marginTop: 8 }}>{detalle.solicitante}</h3>
+            <div className="kv"><span className="k">Dependencia</span><span className="v">{detalle.dependencia} · {detalle.area}</span></div>
+            <div className="kv"><span className="k">Fecha</span><span className="v">{detalle.fecha}</span></div>
+            <div className="kv"><span className="k">Monto</span><span className="v">{money(detalle.monto)}</span></div>
+            <div className="kv"><span className="k">Prioridad</span><span className="v">{detalle.prioridad}</span></div>
+            <div className="kv"><span className="k">Estado</span><span className="v"><EstadoBadge estado={detalle.estado} /></span></div>
+            {detalle.items && detalle.items.length > 0 && (
+              <>
+                <h4 style={{ fontSize: 12, marginTop: 14, marginBottom: 6, color: "var(--muted)", textTransform: "uppercase" }}>Insumos</h4>
+                {detalle.items.map((it) => (
+                  <div key={it.id} className="kv"><span className="k">{it.nombre} ×{it.cantidad}</span><span className="v">{money(it.precio * it.cantidad)}</span></div>
+                ))}
+              </>
+            )}
+            <h4 style={{ fontSize: 12, marginTop: 14, marginBottom: 6, color: "var(--muted)", textTransform: "uppercase" }}>Justificación</h4>
+            <p style={{ fontSize: 13, margin: 0 }}>{detalle.justificacion}</p>
+            <button className="btn btn-ghost" style={{ marginTop: 16 }} onClick={() => setDetalle(null)}>Cerrar</button>
           </div>
         </div>
       )}

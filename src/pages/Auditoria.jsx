@@ -1,8 +1,33 @@
-import { useState } from "react";
-import { bitacora } from "../data/mockData";
+import { useMemo, useState } from "react";
+import { useData } from "../context/DataContext";
+import { downloadTextFile } from "../components/Charts";
 
 export default function Auditoria() {
+  const { bitacora } = useData();
+  const [query, setQuery] = useState("");
+  const [usuario, setUsuario] = useState("Todos los usuarios");
+  const [accion, setAccion] = useState("Todas las acciones");
   const [selected, setSelected] = useState(bitacora[0]);
+
+  const usuarios = useMemo(() => [...new Set(bitacora.map((b) => b.usuario))], [bitacora]);
+  const acciones = useMemo(() => [...new Set(bitacora.map((b) => b.accion))], [bitacora]);
+
+  const filtrada = bitacora.filter((b) => {
+    const matchQuery =
+      query.trim().length === 0 ||
+      b.accion.toLowerCase().includes(query.toLowerCase()) ||
+      b.usuario.toLowerCase().includes(query.toLowerCase()) ||
+      b.objeto.toLowerCase().includes(query.toLowerCase());
+    const matchUsuario = usuario === "Todos los usuarios" || b.usuario === usuario;
+    const matchAccion = accion === "Todas las acciones" || b.accion === accion;
+    return matchQuery && matchUsuario && matchAccion;
+  });
+
+  function exportar() {
+    const header = "Hash,HashPrev,Fecha,Usuario,Rol,Accion,Objeto,IP,Ubicacion";
+    const rows = filtrada.map((b) => [b.hash, b.hashPrev, b.fecha, b.usuario, b.rol, b.accion, b.objeto, b.ip, b.ubicacion].join(","));
+    downloadTextFile("bitacora.csv", [header, ...rows].join("\n"), "text/csv");
+  }
 
   return (
     <div>
@@ -11,13 +36,19 @@ export default function Auditoria() {
           <h2>Auditoría</h2>
           <p>Bitácora de todas las acciones del sistema, encadenada por hash para garantizar inmutabilidad.</p>
         </div>
-        <button className="btn btn-ghost">Exportar bitácora</button>
+        <button className="btn btn-ghost" onClick={exportar}>Exportar bitácora</button>
       </div>
 
       <div className="toolbar">
-        <input className="input" style={{ maxWidth: 260 }} placeholder="Buscar acción, usuario u objeto…" />
-        <select className="input" style={{ maxWidth: 180 }}><option>Todos los usuarios</option></select>
-        <select className="input" style={{ maxWidth: 180 }}><option>Todas las acciones</option></select>
+        <input className="input" style={{ maxWidth: 260 }} placeholder="Buscar acción, usuario u objeto…" value={query} onChange={(e) => setQuery(e.target.value)} />
+        <select className="input" style={{ maxWidth: 180 }} value={usuario} onChange={(e) => setUsuario(e.target.value)}>
+          <option>Todos los usuarios</option>
+          {usuarios.map((u) => <option key={u}>{u}</option>)}
+        </select>
+        <select className="input" style={{ maxWidth: 180 }} value={accion} onChange={(e) => setAccion(e.target.value)}>
+          <option>Todas las acciones</option>
+          {acciones.map((a) => <option key={a}>{a}</option>)}
+        </select>
       </div>
 
       <div className="split">
@@ -27,7 +58,10 @@ export default function Auditoria() {
               <tr><th>Hash</th><th>Fecha</th><th>Usuario</th><th>Acción</th><th>Objeto</th></tr>
             </thead>
             <tbody>
-              {bitacora.map((b) => (
+              {filtrada.length === 0 && (
+                <tr><td colSpan={5}><div className="empty-state"><div className="glyph">∅</div>Sin registros que coincidan con el filtro.</div></td></tr>
+              )}
+              {filtrada.map((b) => (
                 <tr key={b.hash} onClick={() => setSelected(b)} style={{ cursor: "pointer", background: selected?.hash === b.hash ? "var(--surface-sunken)" : undefined }}>
                   <td className="mono" style={{ color: b.alerta ? "var(--danger)" : undefined }}>{b.hash}</td>
                   <td className="mono" style={{ fontSize: 11.5 }}>{b.fecha}</td>

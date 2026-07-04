@@ -118,6 +118,83 @@ export const consumoMensual = [
   { mes: "Jun", monto: 231000 },
 ];
 
+// ---------------------------------------------------------------
+// Series de consumo por periodo (día/mes/año) y por área/dependencia.
+// Generadas de forma determinística (mismo "seed" => mismo valor) para
+// que los gráficos sean estables entre renders sin necesitar backend.
+// ---------------------------------------------------------------
+
+export const todasLasAreas = dependencias.flatMap((d) =>
+  d.areas.map((area) => ({ area, dependencia: d.clave, dependenciaNombre: d.nombre }))
+);
+
+const MESES = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
+const ANIOS = [2023, 2024, 2025, 2026];
+const DIAS_MES_ACTUAL = 30;
+
+function hashSeed(str) {
+  let h = 0;
+  for (let i = 0; i < str.length; i++) {
+    h = (h << 5) - h + str.charCodeAt(i);
+    h |= 0;
+  }
+  return h;
+}
+
+function seededValue(seed, min, max) {
+  const x = Math.sin(seed) * 10000;
+  const frac = x - Math.floor(x);
+  return Math.round(min + frac * (max - min));
+}
+
+/** Serie de consumo para una sola área, en el periodo pedido. */
+export function consumoPorPeriodo(periodo, area) {
+  const base = hashSeed(area);
+  if (periodo === "dia") {
+    return Array.from({ length: DIAS_MES_ACTUAL }, (_, i) => ({
+      label: String(i + 1),
+      monto: seededValue(base + i * 13.37, 1200, 9000),
+    }));
+  }
+  if (periodo === "anio") {
+    return ANIOS.map((y, i) => ({
+      label: String(y),
+      monto: seededValue(base + i * 97.1, 380000, 1450000),
+    }));
+  }
+  return MESES.map((m, i) => ({
+    label: m,
+    monto: seededValue(base + i * 31.7, 38000, 145000),
+  }));
+}
+
+/** Suma la serie de una lista de áreas (para comparar dependencias o el total). */
+export function sumarSeries(areas, periodo) {
+  const series = areas.map((a) => consumoPorPeriodo(periodo, a));
+  const labels = (series[0] || consumoPorPeriodo(periodo, "__vacio__")).map((p) => p.label);
+  return labels.map((label, i) => ({
+    label,
+    monto: series.reduce((sum, serie) => sum + serie[i].monto, 0),
+  }));
+}
+
+/** Serie total (todas las áreas) para el periodo pedido. */
+export function consumoTotalPorPeriodo(periodo) {
+  return sumarSeries(todasLasAreas.map((a) => a.area), periodo);
+}
+
+/** Serie total por dependencia (suma de sus áreas) para el periodo pedido. */
+export function consumoPorDependencia(clave, periodo) {
+  const areas = todasLasAreas.filter((a) => a.dependencia === clave).map((a) => a.area);
+  return sumarSeries(areas, periodo);
+}
+
+export const PERIODOS = [
+  { id: "dia", label: "Por día" },
+  { id: "mes", label: "Por mes" },
+  { id: "anio", label: "Por año" },
+];
+
 export function estadoBadgeClass(estado) {
   const map = {
     Pendiente: "badge-warning",
