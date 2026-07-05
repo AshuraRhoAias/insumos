@@ -8,6 +8,9 @@ import {
   dependencias as dependenciasIniciales,
   bitacora as bitacoraIniciales,
   documentos as documentosIniciales,
+  PUESTOS_AREA,
+  PUESTOS_FIJOS,
+  TRAMITE_TIPOS,
 } from "../data/mockData";
 
 // Store en memoria que simula lo que en el sistema real sería la API.
@@ -84,7 +87,7 @@ export function DataProvider({ children }) {
   }
 
   // ---------- Solicitudes ----------
-  function crearSolicitud({ items, justificacion, prioridad, estado = "Pendiente" }) {
+  function crearSolicitud({ items, justificacion, prioridad, estado = "Pendiente", tipo = "insumos" }) {
     const monto = items.reduce((s, i) => s + i.precio * i.cantidad, 0);
     const nueva = {
       folio: nextFolio(solicitudes),
@@ -96,6 +99,7 @@ export function DataProvider({ children }) {
       estado,
       prioridad,
       justificacion,
+      tipo,
       items,
     };
     setSolicitudes((prev) => [nueva, ...prev]);
@@ -118,20 +122,74 @@ export function DataProvider({ children }) {
     }
   }
 
-  // ---------- Oficios y firmas ----------
-  // Una vez validado (aprobado) el insumo, se genera el oficio de
-  // requerimiento; debe firmarse antes de que Almacén pueda entregarlo.
+  // ---------- Oficios y cadena de firmas ----------
+  // Cada trámite (insumos, requisición, beca, autorización, apoyo) define
+  // en TRAMITE_TIPOS una cadena de puestos. Al firmar el puesto en turno,
+  // el oficio avanza automáticamente al siguiente; al firmar el último se
+  // cierra el trámite (y en insumos/requisiciones, habilita la entrega).
+  function resolverPuesto(paso, solicitud) {
+    if (paso === "Dirección de área") {
+      const p = PUESTOS_AREA[solicitud?.area] || { responsable: "Titular del área", cargo: "Dirección de área" };
+      return { ...p, rol: "Supervisor" };
+    }
+    if (paso === "Dirección General") {
+      const dep = dependencias.find((d) => d.clave === solicitud?.dependencia);
+      return { responsable: dep?.titular || "Director General", cargo: `Dirección General de ${dep?.nombre || ""}`, rol: "Director" };
+    }
+    return PUESTOS_FIJOS[paso] || { responsable: "Por definir", cargo: paso, rol: "Administrador" };
+  }
+
+  // Una vez validado (aprobado) el trámite, se genera el oficio de
+  // requerimiento con la cadena de firmas correspondiente a su tipo.
   function crearOficioRequerimiento(solicitudFolio) {
+    const sol = solicitudes.find((s) => s.folio === solicitudFolio);
+    const tipoDef = TRAMITE_TIPOS.find((t) => t.id === (sol?.tipo || "insumos")) || TRAMITE_TIPOS[0];
     setDocumentos((prev) => {
-      const folio = nextOficioFolio(prev, "REQ");
-      return [{ folio, tipo: "Oficio de requerimiento", solicitudFolio, estado: "Pendiente de firma", fecha: new Date().toISOString().slice(0, 10) }, ...prev];
+      const folio = nextOficioFolio(prev, tipoDef.siglas);
+      return [{
+        folio,
+        tipo: "Oficio de requerimiento",
+        tramiteTipo: tipoDef.id,
+        asunto: tipoDef.asunto,
+        solicitudFolio,
+        cadena: tipoDef.cadena,
+        pasoActual: 0,
+        firmas: [],
+        estado: "Pendiente de firma",
+        fecha: new Date().toISOString().slice(0, 10),
+      }, ...prev];
     });
-    addBitacora("Generar", `Oficio de requerimiento para ${solicitudFolio}`);
+    addBitacora("Generar", `Oficio de requerimiento (${tipoDef.nombre}) para ${solicitudFolio}`);
   }
 
   function firmarOficio(folio) {
-    setDocumentos((prev) => prev.map((d) => (d.folio === folio ? { ...d, estado: "Firmado", firmadoPor: user.nombre } : d)));
-    addBitacora("Firmar", `Oficio ${folio}`);
+    const doc = documentos.find((d) => d.folio === folio);
+    if (!doc || doc.estado === "Firmado") return;
+    const sol = solicitudes.find((s) => s.folio === doc.solicitudFolio);
+    const paso = doc.cadena[doc.pasoActual];
+    const puesto = resolverPuesto(paso, sol);
+    const firma = { paso, responsable: puesto.responsable, cargo: puesto.cargo, fecha: new Date().toISOString().slice(0, 10) };
+    const esUltimo = doc.pasoActual === doc.cadena.length - 1;
+
+    setDocumentos((prev) =>
+      prev.map((d) =>
+        d.folio === folio
+          ? { ...d, firmas: [...d.firmas, firma], pasoActual: esUltimo ? d.pasoActual : d.pasoActual + 1, estado: esUltimo ? "Firmado" : d.estado }
+          : d
+      )
+    );
+    addBitacora("Firmar", `Oficio ${folio} — ${paso}`);
+
+    if (esUltimo) {
+      setDocumentos((prev) => {
+        const nfolio = nextOficioFolio(prev, "AV");
+        return [{ folio: nfolio, tipo: "Aviso de conclusión", tramiteTipo: doc.tramiteTipo, solicitudFolio: doc.solicitudFolio, estado: "Vigente", fecha: new Date().toISOString().slice(0, 10) }, ...prev];
+      });
+      addBitacora("Generar", `Aviso de conclusión para ${doc.solicitudFolio}`);
+      if (paso !== "Almacén" && sol) {
+        cambiarEstadoSolicitud(doc.solicitudFolio, "Entregada");
+      }
+    }
   }
 
   function oficioRequerimientoDe(solicitudFolio) {
@@ -272,6 +330,7 @@ export function DataProvider({ children }) {
       agregarSubarea,
       firmarOficio,
       oficioRequerimientoDe,
+      resolverPuesto,
       addBitacora,
     }),
     [solicitudes, aprobacionesPendientes, insumos, movimientos, usuarios, dependencias, bitacora, documentos, carrito]

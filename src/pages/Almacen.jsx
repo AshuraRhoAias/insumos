@@ -1,7 +1,13 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useData } from "../context/DataContext";
+import { TRAMITE_TIPOS } from "../data/mockData";
 import { EstadoBadge, money } from "../components/UI";
+
+function terminaEnAlmacen(tramiteTipoId) {
+  const def = TRAMITE_TIPOS.find((t) => t.id === tramiteTipoId);
+  return def ? def.cadena[def.cadena.length - 1] === "Almacén" : true;
+}
 
 const TIPO_COLOR = {
   Entrada: "var(--success)",
@@ -22,7 +28,7 @@ export default function Almacen() {
   const [editForm, setEditForm] = useState(null);
 
   const bajos = insumos.filter((i) => i.stock < i.minimo);
-  const pendientesEntrega = solicitudes.filter((s) => s.estado === "Aprobada");
+  const pendientesEntrega = solicitudes.filter((s) => s.estado === "Aprobada" && terminaEnAlmacen(s.tipo));
 
   function oficioDe(folio) {
     return documentos.find((d) => d.tipo === "Oficio de requerimiento" && d.solicitudFolio === folio);
@@ -146,7 +152,16 @@ export default function Almacen() {
                     <td>{s.solicitante}</td>
                     <td>{money(s.monto)}</td>
                     <td>
-                      {oficio ? <EstadoBadge estado={oficio.estado} /> : <span className="badge badge-neutral">Sin generar</span>}
+                      {oficio ? (
+                        <>
+                          <EstadoBadge estado={oficio.estado} />{" "}
+                          {oficio.cadena && (
+                            <span style={{ fontSize: 11, color: "var(--muted)" }}>
+                              ({oficio.estado === "Firmado" ? `${oficio.cadena.length}/${oficio.cadena.length}` : `${oficio.pasoActual + 1}/${oficio.cadena.length} · ${oficio.cadena[oficio.pasoActual]}`})
+                            </span>
+                          )}
+                        </>
+                      ) : <span className="badge badge-neutral">Sin generar</span>}
                     </td>
                     <td>
                       {!firmado && (
