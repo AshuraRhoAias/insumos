@@ -195,6 +195,48 @@ export const PERIODOS = [
   { id: "anio", label: "Por año" },
 ];
 
+// ---------------------------------------------------------------
+// Organigrama y cadenas de firma. Cada trámite recorre una cadena de
+// puestos (no de personas) — al firmar el puesto actual, el oficio pasa
+// automáticamente al siguiente hasta llegar al último, que cierra el
+// trámite (y en insumos/requisiciones, habilita la entrega en Almacén).
+// ---------------------------------------------------------------
+
+// Director/responsable de cada área (primer eslabón de la cadena para
+// trámites que arrancan en la propia dependencia, p.ej. becas/apoyos).
+export const PUESTOS_AREA = {
+  "Recursos Materiales": { responsable: "Lic. Fernando Ríos Aguilar", cargo: "Jefe de Recursos Materiales" },
+  "Mantenimiento Urbano": { responsable: "Ing. Patricia Gómez Luna", cargo: "Directora de Mantenimiento Urbano" },
+  "Alumbrado Público": { responsable: "Ing. Sergio Ávalos Ruiz", cargo: "Director de Alumbrado Público" },
+  "Asistencia Social": { responsable: "Lic. Daniela Cruz Ponce", cargo: "Directora de Asistencia Social" },
+  "Centros Comunitarios": { responsable: "Lic. Emilio Torres Nava", cargo: "Director de Centros Comunitarios" },
+  Patrullaje: { responsable: "Cmdte. Luis Ángel Ramírez", cargo: "Director de Patrullaje" },
+  "Protección Civil": { responsable: "Ing. Rosa Elena Duarte", cargo: "Directora de Protección Civil" },
+  Vialidad: { responsable: "Ing. Mauricio Solano", cargo: "Director de Vialidad" },
+  "Auditoría Interna": { responsable: "Lic. Sofía Bravo Camacho", cargo: "Jefa de Auditoría Interna" },
+};
+
+// Puestos fijos (no dependen del área que solicita) que participan en
+// las cadenas de firma de trámites operativos.
+export const PUESTOS_FIJOS = {
+  "Recursos Materiales": { responsable: "Lic. Fernando Ríos Aguilar", cargo: "Jefe de Recursos Materiales", rol: "Almacén" },
+  "Transparencia": { responsable: "Lic. Gabriela Soto Reyes", cargo: "Titular de la Unidad de Transparencia", rol: "Auditor" },
+  "Almacén": { responsable: "Marco Villaseñor", cargo: "Jefe de Almacén", rol: "Almacén" },
+  "Tesorería": { responsable: "Lucía Fernández Row", cargo: "Titular de Tesorería", rol: "Tesorería" },
+  "Alcaldía": { responsable: "C. Alcalde(sa) Constitucional", cargo: "Alcaldía", rol: "Administrador" },
+};
+
+// Catálogo de trámites: cada uno define su propia cadena de firmas.
+// "Dirección de área" y "Dirección General" se resuelven en tiempo real
+// según la dependencia/área de quien solicita.
+export const TRAMITE_TIPOS = [
+  { id: "insumos", nombre: "Solicitud de insumos", siglas: "SI", cadena: ["Recursos Materiales", "Transparencia", "Almacén"], asunto: "Solicitud y entrega de insumos" },
+  { id: "requisicion", nombre: "Requisición de compra", siglas: "REQ", cadena: ["Recursos Materiales", "Tesorería", "Almacén"], asunto: "Requisición de compra" },
+  { id: "beca", nombre: "Beca", siglas: "BEC", cadena: ["Dirección de área", "Dirección General", "Tesorería"], asunto: "Autorización de beca" },
+  { id: "autorizacion", nombre: "Autorización", siglas: "AUT", cadena: ["Dirección de área", "Dirección General"], asunto: "Autorización de trámite" },
+  { id: "apoyo", nombre: "Apoyo social", siglas: "APO", cadena: ["Dirección de área", "Dirección General", "Alcaldía"], asunto: "Solicitud de apoyo social" },
+];
+
 /** Unidades solicitadas (demanda) estimadas para un insumo en el periodo. */
 export function demandaInsumo(insumoId) {
   return seededValue(hashSeed(insumoId), 20, 480);
