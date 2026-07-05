@@ -1,8 +1,10 @@
 import { useState } from "react";
 import { useLocation } from "react-router-dom";
 import { insumos, TRAMITE_TIPOS } from "../data/mockData";
-import { EstadoBadge, money } from "../components/UI";
+import { EstadoBadge, ScopeBanner, money } from "../components/UI";
+import { useApp } from "../context/AppContext";
 import { useData } from "../context/DataContext";
+import { claveDependenciaUsuario, filtrarPorAlcance } from "../utils/alcance";
 
 const ESTADOS = ["Todos", "Borrador", "Pendiente", "Aprobada", "Rechazada", "Entregada", "Corrección"];
 
@@ -12,7 +14,10 @@ function tipoLabel(id) {
 
 export default function Solicitudes() {
   const location = useLocation();
-  const { solicitudes, carrito, agregarCarrito, actualizarCantidadCarrito, quitarCarrito, crearSolicitud } = useData();
+  const { role, user } = useApp();
+  const { solicitudes, dependencias, carrito, agregarCarrito, actualizarCantidadCarrito, quitarCarrito, crearSolicitud } = useData();
+  const depClave = claveDependenciaUsuario(dependencias, user);
+  const solicitudesAlcance = filtrarPorAlcance(solicitudes, role, user, depClave);
   const [tab, setTab] = useState(location.state?.tab === "nueva" ? "nueva" : "lista");
   const [estadoFiltro, setEstadoFiltro] = useState("Todos");
   const [tipo, setTipo] = useState("insumos");
@@ -26,7 +31,7 @@ export default function Solicitudes() {
   const esInsumos = tipo === "insumos";
   const itemsActuales = esInsumos ? carrito : (concepto.trim() && Number(montoConcepto) > 0 ? [{ id: "CONCEPTO", nombre: concepto, cantidad: 1, precio: Number(montoConcepto) }] : []);
 
-  const filtradas = solicitudes.filter((s) => estadoFiltro === "Todos" || s.estado === estadoFiltro);
+  const filtradas = solicitudesAlcance.filter((s) => estadoFiltro === "Todos" || s.estado === estadoFiltro);
   const total = itemsActuales.reduce((sum, c) => sum + c.precio * c.cantidad, 0);
   const canSend = itemsActuales.length > 0 && justificacion.trim().length >= 20;
 
@@ -63,6 +68,8 @@ export default function Solicitudes() {
           <p>Crea solicitudes de insumos u otros trámites (becas, autorizaciones, requisiciones, apoyos) y revisa el estado de las tuyas.</p>
         </div>
       </div>
+
+      <ScopeBanner role={role} />
 
       {feedback && <div className="toast">✓ {feedback}</div>}
 

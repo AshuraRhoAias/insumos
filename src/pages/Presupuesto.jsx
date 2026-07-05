@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { money, ProgressBar, presupuestoColor } from "../components/UI";
+import { ScopeBanner, money, ProgressBar, presupuestoColor } from "../components/UI";
 import { useApp } from "../context/AppContext";
 import { useData } from "../context/DataContext";
+import { claveDependenciaUsuario, filtrarDependenciasPorAlcance } from "../utils/alcance";
 
 function nivel(pct) {
   if (pct > 100) return { label: "Bloqueado", color: "var(--ink)" };
@@ -12,22 +13,24 @@ function nivel(pct) {
 }
 
 export default function Presupuesto() {
-  const { role } = useApp();
-  const { dependencias, actualizarDependencia } = useData();
+  const { role, user } = useApp();
+  const { dependencias: todasDependencias, actualizarDependencia } = useData();
   const canEdit = role === "Tesorería" || role === "Administrador";
+  const depClave = claveDependenciaUsuario(todasDependencias, user);
+  const dependencias = filtrarDependenciasPorAlcance(todasDependencias, role, user, depClave);
   const totalAsignado = dependencias.reduce((s, d) => s + d.presupuesto, 0);
   const totalEjercido = dependencias.reduce((s, d) => s + d.ejercido, 0);
 
   const [showForm, setShowForm] = useState(false);
-  const [asignacion, setAsignacion] = useState({ depId: dependencias[0]?.id, monto: 0 });
+  const [asignacion, setAsignacion] = useState({ depId: todasDependencias[0]?.id, monto: 0 });
   const [feedback, setFeedback] = useState("");
 
   function asignar() {
-    const dep = dependencias.find((d) => d.id === asignacion.depId);
+    const dep = todasDependencias.find((d) => d.id === asignacion.depId);
     if (!dep || Number(asignacion.monto) <= 0) return;
     actualizarDependencia(dep.id, { presupuesto: dep.presupuesto + Number(asignacion.monto) });
     setFeedback(`Se asignaron ${money(Number(asignacion.monto))} adicionales a ${dep.nombre}.`);
-    setAsignacion({ depId: dependencias[0]?.id, monto: 0 });
+    setAsignacion({ depId: todasDependencias[0]?.id, monto: 0 });
     setShowForm(false);
     setTimeout(() => setFeedback(""), 3500);
   }
@@ -46,6 +49,8 @@ export default function Presupuesto() {
         )}
       </div>
 
+      <ScopeBanner role={role} />
+
       {feedback && <div className="toast">✓ {feedback}</div>}
 
       {showForm && (
@@ -54,7 +59,7 @@ export default function Presupuesto() {
             <div className="field">
               <label>Dependencia</label>
               <select className="input" value={asignacion.depId} onChange={(e) => setAsignacion({ ...asignacion, depId: e.target.value })}>
-                {dependencias.map((d) => <option key={d.id} value={d.id}>{d.nombre}</option>)}
+                {todasDependencias.map((d) => <option key={d.id} value={d.id}>{d.nombre}</option>)}
               </select>
             </div>
             <div className="field">

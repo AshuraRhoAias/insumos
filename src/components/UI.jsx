@@ -1,7 +1,19 @@
 import { estadoBadgeClass } from "../data/mockData";
+import { alcanceDe } from "../utils/alcance";
 
 export function EstadoBadge({ estado }) {
   return <span className={"badge " + estadoBadgeClass(estado)}>{estado}</span>;
+}
+
+/** Indica al usuario qué alcance de datos está viendo según su rol activo. */
+export function ScopeBanner({ role }) {
+  const { label } = alcanceDe(role);
+  return (
+    <div style={{ fontSize: 12, color: "var(--muted)", marginBottom: 16, display: "flex", alignItems: "center", gap: 6 }}>
+      <span className="badge badge-neutral">Nivel: {role}</span>
+      Mostrando: {label}
+    </div>
+  );
 }
 
 export function money(n) {

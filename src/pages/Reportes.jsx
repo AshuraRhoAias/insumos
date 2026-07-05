@@ -1,17 +1,20 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   reportesDisponibles,
   todasLasAreas,
   consumoPorPeriodo,
   consumoPorDependencia,
   consumoTotalPorPeriodo,
+  sumarSeries,
   demandaInsumo,
   tiempoAtencionPorArea,
   PERIODOS,
 } from "../data/mockData";
-import { money } from "../components/UI";
+import { ScopeBanner, money } from "../components/UI";
+import { useApp } from "../context/AppContext";
 import { useData } from "../context/DataContext";
 import { BarChart, chartSeriesToCSV, downloadTextFile } from "../components/Charts";
+import { claveDependenciaUsuario, filtrarAreasPorAlcance, filtrarDependenciasPorAlcance, filtrarPorAlcance } from "../utils/alcance";
 
 const MODOS = [
   { id: "total", label: "Todas las áreas (total)" },
@@ -22,12 +25,26 @@ const MODOS = [
 const TIENE_PERIODO = new Set(["RPT-1", "RPT-3"]);
 
 export default function Reportes() {
-  const { insumos, solicitudes, dependencias } = useData();
+  const { role, user } = useApp();
+  const { insumos, solicitudes: todasSolicitudes, dependencias: todasDependencias } = useData();
+  const depClave = claveDependenciaUsuario(todasDependencias, user);
+  const solicitudes = filtrarPorAlcance(todasSolicitudes, role, user, depClave);
+  const dependencias = filtrarDependenciasPorAlcance(todasDependencias, role, user, depClave);
+  const areasVisibles = filtrarAreasPorAlcance(todasLasAreas, role, user, depClave);
   const [activo, setActivo] = useState(reportesDisponibles[0]);
   const [periodo, setPeriodo] = useState("mes");
   const [modo, setModo] = useState("total");
   const [areasElegidas, setAreasElegidas] = useState(todasLasAreas.slice(0, 3).map((a) => a.area));
   const [exportMsg, setExportMsg] = useState("");
+
+  useEffect(() => {
+    setAreasElegidas((prev) => {
+      const visibles = new Set(areasVisibles.map((a) => a.area));
+      const conservadas = prev.filter((a) => visibles.has(a));
+      return conservadas.length ? conservadas : areasVisibles.slice(0, 3).map((a) => a.area);
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [role, depClave]);
 
   function toggleArea(area) {
     setAreasElegidas((prev) => (prev.includes(area) ? prev.filter((a) => a !== area) : [...prev, area]));
@@ -41,16 +58,17 @@ export default function Reportes() {
         series = dependencias.map((d) => ({ name: d.clave, data: consumoPorDependencia(d.clave, periodo).map((p) => p.monto) }));
         labels = consumoPorDependencia(dependencias[0].clave, periodo).map((p) => p.label);
       } else if (modo === "area") {
-        const activas = areasElegidas.length ? areasElegidas : [todasLasAreas[0].area];
+        const activas = areasElegidas.length ? areasElegidas : [areasVisibles[0].area];
         series = activas.map((area) => ({ name: area, data: consumoPorPeriodo(periodo, area).map((p) => p.monto) }));
         labels = consumoPorPeriodo(periodo, activas[0]).map((p) => p.label);
       } else {
-        const total = consumoTotalPorPeriodo(periodo);
+        const esGlobal = areasVisibles.length === todasLasAreas.length;
+        const total = esGlobal ? consumoTotalPorPeriodo(periodo) : sumarSeries(areasVisibles.map((a) => a.area), periodo);
         labels = total.map((p) => p.label);
-        series = [{ name: "Total", data: total.map((p) => p.monto) }];
+        series = [{ name: esGlobal ? "Total" : "Total (tu alcance)", data: total.map((p) => p.monto) }];
       }
 
-      const porArea = todasLasAreas.map((a) => {
+      const porArea = areasVisibles.map((a) => {
         const serieArea = consumoPorPeriodo(periodo, a.area);
         return { area: a.area, dependencia: a.dependencia, total: serieArea.reduce((s, p) => s + p.monto, 0) };
       }).sort((a, b) => b.total - a.total);
@@ -118,7 +136,7 @@ export default function Reportes() {
     }
 
     if (activo.id === "RPT-5") {
-      const datos = todasLasAreas.map((a) => {
+      const datos = areasVisibles.map((a) => {
         const t = tiempoAtencionPorArea(a.area);
         const enTramiteReal = solicitudes.filter((s) => s.area === a.area && (s.estado === "Pendiente" || s.estado === "Corrección"));
         const montoTramite = enTramiteReal.reduce((s, sol) => s + sol.monto, 0);
@@ -168,7 +186,7 @@ export default function Reportes() {
         { label: "Monto total rechazado", value: money(rechazadas.reduce((s, r) => s + r.monto, 0)) },
       ],
     };
-  }, [activo, periodo, modo, areasElegidas, insumos, solicitudes, dependencias]);
+  }, [activo, periodo, modo, areasElegidas, insumos, solicitudes, dependencias, areasVisibles]);
 
   function exportar(formato) {
     if (formato === "PDF") {
@@ -191,6 +209,8 @@ export default function Reportes() {
           <p>Indicadores y reportes analíticos sobre consumo, presupuesto y tiempos de atención, desglosados por catálogo y por área.</p>
         </div>
       </div>
+
+      <ScopeBanner role={role} />
 
       {exportMsg && <div className="toast">✓ {exportMsg}</div>}
 
@@ -220,7 +240,7 @@ export default function Reportes() {
 
           {mostrarControlesPeriodo && modo === "area" && (
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 18 }}>
-              {todasLasAreas.map((a) => (
+              {areasVisibles.map((a) => (
                 <button
                   key={a.area}
                   type="button"

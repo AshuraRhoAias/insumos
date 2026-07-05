@@ -92,7 +92,7 @@ export function DataProvider({ children }) {
     const nueva = {
       folio: nextFolio(solicitudes),
       solicitante: user.nombre,
-      dependencia: "SOS",
+      dependencia: dependencias.find((d) => d.nombre === user.dependencia)?.clave || "SOS",
       area: user.area,
       fecha: new Date().toISOString().slice(0, 10),
       monto,

@@ -3,8 +3,9 @@ import { useNavigate } from "react-router-dom";
 import { useApp } from "../context/AppContext";
 import { useData } from "../context/DataContext";
 import { consumoTotalPorPeriodo, consumoPorDependencia, PERIODOS } from "../data/mockData";
-import { EstadoBadge, money } from "../components/UI";
+import { EstadoBadge, ScopeBanner, money } from "../components/UI";
 import { BarChart } from "../components/Charts";
+import { claveDependenciaUsuario, filtrarDependenciasPorAlcance, filtrarPorAlcance } from "../utils/alcance";
 
 const ESTADOS_ORDEN = ["Borrador", "Pendiente", "Corrección", "Aprobada", "Rechazada", "Entregada"];
 
@@ -14,7 +15,12 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const [periodo, setPeriodo] = useState("mes");
 
+  const depClave = claveDependenciaUsuario(dependencias, user);
+  const solicitudesAlcance = useMemo(() => filtrarPorAlcance(solicitudes, role, user, depClave), [solicitudes, role, user, depClave]);
+  const dependenciasAlcance = useMemo(() => filtrarDependenciasPorAlcance(dependencias, role, user, depClave), [dependencias, role, user, depClave]);
+
   const stats = useMemo(() => {
+    const solicitudes = solicitudesAlcance;
     const pendientes = solicitudes.filter((s) => s.estado === "Pendiente" || s.estado === "Corrección");
     const aprobadasSemana = solicitudes.filter((s) => s.estado === "Aprobada" || s.estado === "Entregada").length;
     const disponibles = insumos.filter((i) => i.stock > 0).length;
@@ -37,7 +43,7 @@ export default function Dashboard() {
       Director: [
         { label: "Presupuesto ejercido", value: "69%" },
         { label: "Solicitudes del mes", value: solicitudes.length.toString() },
-        { label: "Áreas activas", value: "3" },
+        { label: "Áreas de mi dependencia", value: (dependenciasAlcance[0]?.areas.length ?? 0).toString() },
         { label: "Alertas presupuestales", value: "1" },
       ],
       "Almacén": [
@@ -61,31 +67,31 @@ export default function Dashboard() {
       Administrador: [
         { label: "Usuarios activos", value: "128" },
         { label: "Solicitudes del mes", value: solicitudes.length.toString() },
-        { label: "Dependencias", value: "4" },
+        { label: "Dependencias", value: dependenciasAlcance.length.toString() },
         { label: "Alertas del sistema", value: "3" },
       ],
     };
-  }, [solicitudes, insumos, bitacora]);
+  }, [solicitudesAlcance, dependenciasAlcance, insumos, bitacora]);
 
   const statsRol = stats[role] || stats.Administrador;
   const consumo = consumoTotalPorPeriodo(periodo);
   const notificaciones = bitacora.slice(0, 4);
 
-  // 2. Consumo anual por dependencia
+  // 2. Consumo anual por dependencia (limitado a las dependencias visibles según el nivel del rol)
   const consumoDependencias = useMemo(
-    () => dependencias.map((d) => ({ clave: d.clave, total: consumoPorDependencia(d.clave, "mes").reduce((s, m) => s + m.monto, 0) })),
-    [dependencias]
+    () => dependenciasAlcance.map((d) => ({ clave: d.clave, total: consumoPorDependencia(d.clave, "mes").reduce((s, m) => s + m.monto, 0) })),
+    [dependenciasAlcance]
   );
 
-  // 3. Solicitudes por estado (dinámico, refleja acciones de la sesión)
+  // 3. Solicitudes por estado (dinámico, refleja acciones de la sesión, dentro del alcance del rol)
   const porEstado = useMemo(() => {
     const conteo = Object.fromEntries(ESTADOS_ORDEN.map((e) => [e, 0]));
-    solicitudes.forEach((s) => { conteo[s.estado] = (conteo[s.estado] || 0) + 1; });
+    solicitudesAlcance.forEach((s) => { conteo[s.estado] = (conteo[s.estado] || 0) + 1; });
     return ESTADOS_ORDEN.map((e) => ({ estado: e, total: conteo[e] }));
-  }, [solicitudes]);
+  }, [solicitudesAlcance]);
 
-  // 4. Presupuesto asignado vs ejercido por dependencia (dinámico)
-  const presupuestoDeps = dependencias;
+  // 4. Presupuesto asignado vs ejercido por dependencia (dinámico, mismo alcance)
+  const presupuestoDeps = dependenciasAlcance;
 
   // 5. Insumos por categoría (dinámico)
   const porCategoria = useMemo(() => {
@@ -108,6 +114,8 @@ export default function Dashboard() {
           + Nueva solicitud
         </button>
       </div>
+
+      <ScopeBanner role={role} />
 
       <div className="grid grid-4" style={{ marginBottom: 22 }}>
         {statsRol.map((s) => (
@@ -193,7 +201,10 @@ export default function Dashboard() {
               </tr>
             </thead>
             <tbody>
-              {solicitudes.slice(0, 5).map((s) => (
+              {solicitudesAlcance.length === 0 && (
+                <tr><td colSpan={6}><div className="empty-state"><div className="glyph">∅</div>Sin solicitudes en tu alcance.</div></td></tr>
+              )}
+              {solicitudesAlcance.slice(0, 5).map((s) => (
                 <tr key={s.folio}>
                   <td className="mono">{s.folio}</td>
                   <td>{s.solicitante}</td>

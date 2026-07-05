@@ -1,13 +1,16 @@
-import { useState } from "react";
-import { EstadoBadge, money, ProgressBar, presupuestoColor } from "../components/UI";
+import { useEffect, useState } from "react";
+import { EstadoBadge, ScopeBanner, money, ProgressBar, presupuestoColor } from "../components/UI";
 import { useApp } from "../context/AppContext";
 import { useData } from "../context/DataContext";
+import { claveDependenciaUsuario, filtrarDependenciasPorAlcance } from "../utils/alcance";
 
 const NUEVA_INICIAL = { clave: "", nombre: "", titular: "", presupuesto: 0 };
 
 export default function Dependencias() {
-  const { role } = useApp();
-  const { dependencias, crearDependencia, actualizarDependencia, cambiarEstadoDependencia, agregarSubarea } = useData();
+  const { role, user } = useApp();
+  const { dependencias: todasDependencias, crearDependencia, actualizarDependencia, cambiarEstadoDependencia, agregarSubarea } = useData();
+  const depClave = claveDependenciaUsuario(todasDependencias, user);
+  const dependencias = filtrarDependenciasPorAlcance(todasDependencias, role, user, depClave);
   const [selectedId, setSelectedId] = useState(dependencias[0]?.id);
   const [query, setQuery] = useState("");
   const [showForm, setShowForm] = useState(false);
@@ -16,6 +19,12 @@ export default function Dependencias() {
   const [edit, setEdit] = useState({ titular: "", presupuesto: 0 });
   const [feedback, setFeedback] = useState("");
   const canManage = role === "Administrador";
+
+  useEffect(() => {
+    if (!dependencias.find((d) => d.id === selectedId)) {
+      setSelectedId(dependencias[0]?.id);
+    }
+  }, [dependencias, selectedId]);
 
   const selected = dependencias.find((d) => d.id === selectedId) || dependencias[0];
   const filtered = dependencias.filter((d) =>
@@ -70,6 +79,8 @@ export default function Dependencias() {
           </button>
         )}
       </div>
+
+      <ScopeBanner role={role} />
 
       {feedback && <div className="toast">✓ {feedback}</div>}
 

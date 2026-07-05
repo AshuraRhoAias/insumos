@@ -1,25 +1,33 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { TRAMITE_TIPOS } from "../data/mockData";
-import { EstadoBadge, money } from "../components/UI";
+import { EstadoBadge, ScopeBanner, money } from "../components/UI";
 import { downloadTextFile } from "../components/Charts";
 import { useApp } from "../context/AppContext";
 import { useData } from "../context/DataContext";
+import { claveDependenciaUsuario, filtrarPorAlcance } from "../utils/alcance";
 
 function tipoDe(tramiteTipo) {
   return TRAMITE_TIPOS.find((t) => t.id === tramiteTipo) || TRAMITE_TIPOS[0];
 }
 
 export default function Oficios() {
-  const { role } = useApp();
-  const { documentos, solicitudes, resolverPuesto, firmarOficio } = useData();
+  const { role, user } = useApp();
+  const { documentos: todosDocumentos, solicitudes, dependencias, resolverPuesto, firmarOficio } = useData();
   const [selected, setSelected] = useState(null);
   const [feedback, setFeedback] = useState("");
-
-  const pendientesFirma = documentos.filter((d) => d.tipo === "Oficio de requerimiento" && d.estado === "Pendiente de firma");
 
   function solicitudDe(folio) {
     return solicitudes.find((s) => s.folio === folio);
   }
+
+  const depClave = claveDependenciaUsuario(dependencias, user);
+  const solicitudesAlcance = useMemo(() => filtrarPorAlcance(solicitudes, role, user, depClave), [solicitudes, role, user, depClave]);
+  const documentos = useMemo(() => {
+    const foliosVisibles = new Set(solicitudesAlcance.map((s) => s.folio));
+    return todosDocumentos.filter((d) => foliosVisibles.has(d.solicitudFolio));
+  }, [todosDocumentos, solicitudesAlcance]);
+
+  const pendientesFirma = documentos.filter((d) => d.tipo === "Oficio de requerimiento" && d.estado === "Pendiente de firma");
 
   function pasoActualInfo(doc) {
     if (!doc.cadena) return null;
@@ -77,6 +85,8 @@ export default function Oficios() {
           <p>Oficios de requerimiento, avisos y actas — cada uno recorre la cadena de firmas de su trámite (insumos, requisiciones, becas, autorizaciones, apoyos) hasta su conclusión.</p>
         </div>
       </div>
+
+      <ScopeBanner role={role} />
 
       {feedback && <div className="toast">✓ {feedback}</div>}
 
