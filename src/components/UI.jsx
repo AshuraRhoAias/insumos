@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from "react";
 import { estadoBadgeClass } from "../data/mockData";
 import { alcanceDe } from "../utils/alcance";
 
@@ -27,6 +28,55 @@ export function ProgressBar({ pct, color }) {
       <div className="progress-fill" style={{ width: `${clamped}%`, background: color }} />
     </div>
   );
+}
+
+const NUM_TOKEN = /-?[\d,]*\d(\.\d+)?/;
+
+/**
+ * Anima el primer número dentro de un valor ya formateado ("$13,150,000",
+ * "69%", "1.4 d"…) contando desde el valor previo. El resto del texto
+ * (símbolo de moneda, unidad, signo) se conserva tal cual.
+ */
+export function AnimatedNumber({ value, duration = 700 }) {
+  const str = String(value);
+  const match = str.match(NUM_TOKEN);
+  const [display, setDisplay] = useState(str);
+  const prevRef = useRef(0);
+
+  useEffect(() => {
+    if (!match) {
+      setDisplay(str);
+      return;
+    }
+    const raw = match[0];
+    const target = parseFloat(raw.replace(/,/g, ""));
+    if (Number.isNaN(target)) {
+      setDisplay(str);
+      return;
+    }
+    const from = prevRef.current;
+    const decimals = raw.includes(".") ? raw.split(".")[1].length : 0;
+    const start = performance.now();
+    let frame;
+
+    function tick(now) {
+      const t = Math.min(1, (now - start) / duration);
+      const eased = 1 - Math.pow(1 - t, 3);
+      const current = from + (target - from) * eased;
+      const formatted = decimals > 0
+        ? current.toFixed(decimals)
+        : Math.round(current).toLocaleString("en-US");
+      setDisplay(str.slice(0, match.index) + formatted + str.slice(match.index + raw.length));
+      if (t < 1) frame = requestAnimationFrame(tick);
+      else prevRef.current = target;
+    }
+
+    frame = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(frame);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [str]);
+
+  return display;
 }
 
 export function presupuestoColor(pct) {

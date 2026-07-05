@@ -93,7 +93,7 @@ export default function Solicitudes() {
               </button>
             ))}
           </div>
-          <div className="card">
+          <div className="card table-wrap scroll-y" style={{ maxHeight: 460 }}>
             <table>
               <thead>
                 <tr><th>Folio</th><th>Tipo</th><th>Fecha</th><th>Prioridad</th><th>Monto</th><th>Estado</th><th></th></tr>
@@ -226,10 +226,11 @@ export default function Solicitudes() {
 
       {detalle && (
         <div
+          className="modal-overlay"
           style={{ position: "fixed", inset: 0, background: "rgba(28,36,48,0.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 20 }}
           onClick={() => setDetalle(null)}
         >
-          <div className="card card-pad folio-card" style={{ width: 440 }} onClick={(e) => e.stopPropagation()}>
+          <div className="card card-pad folio-card modal-card" style={{ width: 440 }} onClick={(e) => e.stopPropagation()}>
             <div className="folio-tag">{detalle.folio}</div>
             <h3 style={{ marginTop: 8 }}>{detalle.solicitante}</h3>
             <div className="kv"><span className="k">Tipo de trámite</span><span className="v">{tipoLabel(detalle.tipo)}</span></div>

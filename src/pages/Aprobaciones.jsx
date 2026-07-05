@@ -58,7 +58,7 @@ export default function Aprobaciones() {
         <div className="card"><div className="empty-state"><div className="glyph">✓</div>No tienes solicitudes pendientes de aprobación.</div></div>
       ) : (
         <div className="split">
-          <div className="card">
+          <div className="card table-wrap scroll-y" style={{ maxHeight: 460 }}>
             <table>
               <thead>
                 <tr><th>Folio</th><th>Solicitante</th><th>Monto</th><th>Espera</th><th>Estado</th></tr>

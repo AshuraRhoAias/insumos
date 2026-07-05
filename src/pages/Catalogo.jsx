@@ -113,7 +113,7 @@ export default function Catalogo() {
           {filtered.map((i) => {
             const disp = disponibilidad(i);
             return (
-              <div key={i.id} className="card card-pad" style={{ cursor: "pointer" }} onClick={() => setSelected(i)}>
+              <div key={i.id} className="card card-pad card-hover" onClick={() => setSelected(i)}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                   <div className="folio-tag">{i.codigo}</div>
                   <span className="badge" style={{ background: "transparent", color: disp.color }}>{disp.label}</span>
@@ -163,10 +163,11 @@ export default function Catalogo() {
 
       {selected && (
         <div
+          className="modal-overlay"
           style={{ position: "fixed", inset: 0, background: "rgba(28,36,48,0.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 20 }}
           onClick={() => setSelected(null)}
         >
-          <div className="card card-pad" style={{ width: 420 }} onClick={(e) => e.stopPropagation()}>
+          <div className="card card-pad modal-card" style={{ width: 420 }} onClick={(e) => e.stopPropagation()}>
             <div className="folio-tag">{selected.codigo}</div>
             <h3 style={{ marginTop: 8 }}>{selected.nombre}</h3>
             <div className="kv"><span className="k">Categoría</span><span className="v">{selected.categoria}</span></div>

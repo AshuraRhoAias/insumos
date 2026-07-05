@@ -96,7 +96,7 @@ export default function Oficios() {
         </div>
       )}
 
-      <div className="card">
+      <div className="card table-wrap scroll-y" style={{ maxHeight: 460 }}>
         <table>
           <thead>
             <tr><th>Folio</th><th>Tipo</th><th>Solicitud origen</th><th>Fecha</th><th>Progreso</th><th>Estado</th><th></th></tr>
@@ -129,10 +129,11 @@ export default function Oficios() {
 
       {selected && (
         <div
+          className="modal-overlay"
           style={{ position: "fixed", inset: 0, background: "rgba(28,36,48,0.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 20, padding: 20 }}
           onClick={() => setSelected(null)}
         >
-          <div className="card folio-card" style={{ width: 560, maxHeight: "90vh", overflowY: "auto" }} onClick={(e) => e.stopPropagation()}>
+          <div className="card folio-card modal-card" style={{ width: 560 }} onClick={(e) => e.stopPropagation()}>
             <div style={{ background: "var(--primary)", color: "#fff", padding: "14px 22px", borderRadius: "14px 14px 0 0" }}>
               <div style={{ fontWeight: 800, fontSize: 15, letterSpacing: "0.02em" }}>GOBIERNO MUNICIPAL</div>
               <div style={{ fontSize: 11.5, opacity: 0.85 }}>Sistema Integral de Control de Insumos Gubernamentales</div>

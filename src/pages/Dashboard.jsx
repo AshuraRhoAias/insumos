@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useApp } from "../context/AppContext";
 import { useData } from "../context/DataContext";
 import { consumoTotalPorPeriodo, consumoPorDependencia, PERIODOS } from "../data/mockData";
-import { EstadoBadge, ScopeBanner, money } from "../components/UI";
+import { AnimatedNumber, EstadoBadge, ScopeBanner, money } from "../components/UI";
 import { BarChart } from "../components/Charts";
 import { claveDependenciaUsuario, filtrarDependenciasPorAlcance, filtrarPorAlcance } from "../utils/alcance";
 
@@ -121,7 +121,7 @@ export default function Dashboard() {
         {statsRol.map((s) => (
           <div key={s.label} className="card card-pad stat-card">
             <div className="label">{s.label}</div>
-            <div className="value">{s.value}</div>
+            <div className="value"><AnimatedNumber value={s.value} /></div>
             <div className="delta">Actualizado en esta sesión</div>
           </div>
         ))}
@@ -189,6 +189,7 @@ export default function Dashboard() {
           <div className="card-pad" style={{ paddingBottom: 0 }}>
             <h3 style={{ marginTop: 0, fontSize: 14 }}>Solicitudes recientes</h3>
           </div>
+          <div className="table-wrap">
           <table>
             <thead>
               <tr>
@@ -216,6 +217,7 @@ export default function Dashboard() {
               ))}
             </tbody>
           </table>
+          </div>
         </div>
 
         <div className="card card-pad">

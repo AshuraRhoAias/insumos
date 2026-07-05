@@ -10,7 +10,7 @@ import {
   tiempoAtencionPorArea,
   PERIODOS,
 } from "../data/mockData";
-import { ScopeBanner, money } from "../components/UI";
+import { AnimatedNumber, ScopeBanner, money } from "../components/UI";
 import { useApp } from "../context/AppContext";
 import { useData } from "../context/DataContext";
 import { BarChart, chartSeriesToCSV, downloadTextFile } from "../components/Charts";
@@ -260,7 +260,7 @@ export default function Reportes() {
             {reporte.resumen.map((r) => (
               <div key={r.label} className="card card-pad stat-card" style={{ boxShadow: "none" }}>
                 <div className="label">{r.label}</div>
-                <div className="value" style={{ fontSize: 19 }}>{r.value}</div>
+                <div className="value" style={{ fontSize: 19 }}><AnimatedNumber value={r.value} /></div>
               </div>
             ))}
           </div>
@@ -270,7 +270,7 @@ export default function Reportes() {
           <h4 style={{ fontSize: 12.5, marginTop: 24, marginBottom: 10, color: "var(--muted)", textTransform: "uppercase" }}>
             Detalle {activo.id === "RPT-1" || activo.id === "RPT-3" ? "por área" : ""}
           </h4>
-          <div className="card" style={{ boxShadow: "none" }}>
+          <div className="card table-wrap scroll-y" style={{ boxShadow: "none", maxHeight: 420 }}>
             <table>
               <thead>
                 <tr>{reporte.cols.map((c) => <th key={c}>{c}</th>)}</tr>

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ScopeBanner, money, ProgressBar, presupuestoColor } from "../components/UI";
+import { AnimatedNumber, ScopeBanner, money, ProgressBar, presupuestoColor } from "../components/UI";
 import { useApp } from "../context/AppContext";
 import { useData } from "../context/DataContext";
 import { claveDependenciaUsuario, filtrarDependenciasPorAlcance } from "../utils/alcance";
@@ -74,19 +74,19 @@ export default function Presupuesto() {
       <div className="grid grid-3" style={{ marginBottom: 20 }}>
         <div className="card card-pad stat-card">
           <div className="label">Presupuesto total</div>
-          <div className="value">{money(totalAsignado)}</div>
+          <div className="value"><AnimatedNumber value={money(totalAsignado)} /></div>
         </div>
         <div className="card card-pad stat-card">
           <div className="label">Ejercido a la fecha</div>
-          <div className="value">{money(totalEjercido)}</div>
+          <div className="value"><AnimatedNumber value={money(totalEjercido)} /></div>
         </div>
         <div className="card card-pad stat-card">
           <div className="label">Disponible</div>
-          <div className="value">{money(totalAsignado - totalEjercido)}</div>
+          <div className="value"><AnimatedNumber value={money(totalAsignado - totalEjercido)} /></div>
         </div>
       </div>
 
-      <div className="card">
+      <div className="card table-wrap">
         <table>
           <thead>
             <tr><th>Dependencia</th><th>Asignado</th><th>Ejercido</th><th>Avance</th><th>Nivel</th></tr>

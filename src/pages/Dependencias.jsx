@@ -107,6 +107,7 @@ export default function Dependencias() {
               onChange={(e) => setQuery(e.target.value)}
             />
           </div>
+          <div className="table-wrap">
           <table>
             <thead>
               <tr>
@@ -129,6 +130,7 @@ export default function Dependencias() {
               ))}
             </tbody>
           </table>
+          </div>
         </div>
 
         {selected && (
