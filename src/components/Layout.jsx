@@ -11,7 +11,9 @@ export default function Layout() {
       <div className="app-main">
         <Topbar path={location.pathname} />
         <main className="app-content">
-          <Outlet />
+          <div key={location.pathname} className="page-enter">
+            <Outlet />
+          </div>
         </main>
       </div>
     </div>

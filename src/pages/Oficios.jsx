@@ -1,25 +1,33 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { TRAMITE_TIPOS } from "../data/mockData";
-import { EstadoBadge, money } from "../components/UI";
+import { EstadoBadge, ScopeBanner, money } from "../components/UI";
 import { downloadTextFile } from "../components/Charts";
 import { useApp } from "../context/AppContext";
 import { useData } from "../context/DataContext";
+import { claveDependenciaUsuario, filtrarPorAlcance } from "../utils/alcance";
 
 function tipoDe(tramiteTipo) {
   return TRAMITE_TIPOS.find((t) => t.id === tramiteTipo) || TRAMITE_TIPOS[0];
 }
 
 export default function Oficios() {
-  const { role } = useApp();
-  const { documentos, solicitudes, resolverPuesto, firmarOficio } = useData();
+  const { role, user } = useApp();
+  const { documentos: todosDocumentos, solicitudes, dependencias, resolverPuesto, firmarOficio } = useData();
   const [selected, setSelected] = useState(null);
   const [feedback, setFeedback] = useState("");
-
-  const pendientesFirma = documentos.filter((d) => d.tipo === "Oficio de requerimiento" && d.estado === "Pendiente de firma");
 
   function solicitudDe(folio) {
     return solicitudes.find((s) => s.folio === folio);
   }
+
+  const depClave = claveDependenciaUsuario(dependencias, user);
+  const solicitudesAlcance = useMemo(() => filtrarPorAlcance(solicitudes, role, user, depClave), [solicitudes, role, user, depClave]);
+  const documentos = useMemo(() => {
+    const foliosVisibles = new Set(solicitudesAlcance.map((s) => s.folio));
+    return todosDocumentos.filter((d) => foliosVisibles.has(d.solicitudFolio));
+  }, [todosDocumentos, solicitudesAlcance]);
+
+  const pendientesFirma = documentos.filter((d) => d.tipo === "Oficio de requerimiento" && d.estado === "Pendiente de firma");
 
   function pasoActualInfo(doc) {
     if (!doc.cadena) return null;
@@ -78,6 +86,8 @@ export default function Oficios() {
         </div>
       </div>
 
+      <ScopeBanner role={role} />
+
       {feedback && <div className="toast">✓ {feedback}</div>}
 
       {pendientesFirma.length > 0 && (
@@ -86,7 +96,7 @@ export default function Oficios() {
         </div>
       )}
 
-      <div className="card">
+      <div className="card table-wrap scroll-y" style={{ maxHeight: 460 }}>
         <table>
           <thead>
             <tr><th>Folio</th><th>Tipo</th><th>Solicitud origen</th><th>Fecha</th><th>Progreso</th><th>Estado</th><th></th></tr>
@@ -119,10 +129,11 @@ export default function Oficios() {
 
       {selected && (
         <div
+          className="modal-overlay"
           style={{ position: "fixed", inset: 0, background: "rgba(28,36,48,0.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 20, padding: 20 }}
           onClick={() => setSelected(null)}
         >
-          <div className="card folio-card" style={{ width: 560, maxHeight: "90vh", overflowY: "auto" }} onClick={(e) => e.stopPropagation()}>
+          <div className="card folio-card modal-card" style={{ width: 560 }} onClick={(e) => e.stopPropagation()}>
             <div style={{ background: "var(--primary)", color: "#fff", padding: "14px 22px", borderRadius: "14px 14px 0 0" }}>
               <div style={{ fontWeight: 800, fontSize: 15, letterSpacing: "0.02em" }}>GOBIERNO MUNICIPAL</div>
               <div style={{ fontSize: 11.5, opacity: 0.85 }}>Sistema Integral de Control de Insumos Gubernamentales</div>

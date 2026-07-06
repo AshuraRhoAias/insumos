@@ -52,7 +52,7 @@ export default function Auditoria() {
       </div>
 
       <div className="split">
-        <div className="card">
+        <div className="card table-wrap scroll-y" style={{ maxHeight: 460 }}>
           <table>
             <thead>
               <tr><th>Hash</th><th>Fecha</th><th>Usuario</th><th>Acción</th><th>Objeto</th></tr>

@@ -81,7 +81,7 @@ export default function Usuarios() {
         <input className="input" style={{ maxWidth: 300 }} placeholder="Buscar por nombre o número de empleado…" value={query} onChange={(e) => setQuery(e.target.value)} />
       </div>
 
-      <div className="card">
+      <div className="card table-wrap scroll-y" style={{ maxHeight: 460 }}>
         <table>
           <thead>
             <tr><th>Empleado</th><th>Nombre</th><th>Dependencia</th><th>Rol</th><th>Estado</th><th></th></tr>

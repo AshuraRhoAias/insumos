@@ -68,10 +68,11 @@ export default function Topbar({ path }) {
 
       {showCuenta && (
         <div
+          className="modal-overlay"
           style={{ position: "fixed", inset: 0, background: "rgba(28,36,48,0.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 30 }}
           onClick={() => setShowCuenta(false)}
         >
-          <div className="card card-pad" style={{ width: 420 }} onClick={(e) => e.stopPropagation()}>
+          <div className="card card-pad modal-card" style={{ width: 420 }} onClick={(e) => e.stopPropagation()}>
             <h3 style={{ marginTop: 0, fontSize: 15 }}>Configurar cuenta</h3>
             {feedback && <div className="toast">✓ {feedback}</div>}
             <div className="field"><label>Nombre completo</label><input className="input" value={form.nombre} onChange={(e) => setForm({ ...form, nombre: e.target.value })} /></div>

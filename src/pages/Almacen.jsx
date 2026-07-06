@@ -136,7 +136,7 @@ export default function Almacen() {
       </div>
 
       {tab === "entregas" && (
-        <div className="card">
+        <div className="card table-wrap scroll-y" style={{ maxHeight: 460 }}>
           <table>
             <thead><tr><th>Folio</th><th>Solicitante</th><th>Monto</th><th>Oficio de requerimiento</th><th>Acción</th></tr></thead>
             <tbody>
@@ -180,7 +180,7 @@ export default function Almacen() {
       )}
 
       {tab === "inventario" && (
-        <div className="card">
+        <div className="card table-wrap scroll-y" style={{ maxHeight: 460 }}>
           <table>
             <thead><tr><th>Código</th><th>Insumo</th><th>Stock</th><th>Mínimo</th><th>Estado</th><th></th></tr></thead>
             <tbody>
@@ -224,7 +224,7 @@ export default function Almacen() {
       )}
 
       {tab === "movimientos" && (
-        <div className="card">
+        <div className="card table-wrap scroll-y" style={{ maxHeight: 460 }}>
           <table>
             <thead><tr><th>ID</th><th>Tipo</th><th>Insumo</th><th>Cantidad</th><th>Referencia</th><th>Fecha</th></tr></thead>
             <tbody>

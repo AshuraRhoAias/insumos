@@ -1,9 +1,17 @@
-import { useEffect, useState } from "react";
-import { EstadoBadge, money } from "../components/UI";
+import { useEffect, useMemo, useState } from "react";
+import { EstadoBadge, ScopeBanner, money } from "../components/UI";
+import { useApp } from "../context/AppContext";
 import { useData } from "../context/DataContext";
+import { claveDependenciaUsuario, filtrarPorAlcance } from "../utils/alcance";
 
 export default function Aprobaciones() {
-  const { aprobacionesPendientes, cambiarEstadoSolicitud, escalarSolicitud } = useData();
+  const { role, user } = useApp();
+  const { aprobacionesPendientes: todasPendientes, dependencias, cambiarEstadoSolicitud, escalarSolicitud } = useData();
+  const depClave = claveDependenciaUsuario(dependencias, user);
+  const aprobacionesPendientes = useMemo(
+    () => filtrarPorAlcance(todasPendientes, role, user, depClave),
+    [todasPendientes, role, user, depClave]
+  );
   const [selectedFolio, setSelectedFolio] = useState(aprobacionesPendientes[0]?.folio ?? null);
   const [motivo, setMotivo] = useState("");
   const [feedback, setFeedback] = useState("");
@@ -42,13 +50,15 @@ export default function Aprobaciones() {
         </div>
       </div>
 
+      <ScopeBanner role={role} />
+
       {feedback && <div className="toast">✓ {feedback}</div>}
 
       {aprobacionesPendientes.length === 0 ? (
         <div className="card"><div className="empty-state"><div className="glyph">✓</div>No tienes solicitudes pendientes de aprobación.</div></div>
       ) : (
         <div className="split">
-          <div className="card">
+          <div className="card table-wrap scroll-y" style={{ maxHeight: 460 }}>
             <table>
               <thead>
                 <tr><th>Folio</th><th>Solicitante</th><th>Monto</th><th>Espera</th><th>Estado</th></tr>
