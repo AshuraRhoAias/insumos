@@ -498,6 +498,36 @@ a { color: inherit; }
   color: var(--muted);
 }
 
+/* ---------- membrete real del oficio (Alcaldía Cuajimalpa de Morelos) ---------- */
+
+.oficio-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 16px 22px 12px;
+  border-bottom: 2px solid var(--line);
+}
+.oficio-logo-cdmx { height: 32px; width: auto; flex-shrink: 0; }
+.oficio-header-right { text-align: right; }
+.oficio-header-lockup { display: flex; align-items: center; gap: 6px; justify-content: flex-end; }
+.oficio-escudo { height: 32px; width: auto; }
+.oficio-wordmark { font-weight: 800; font-size: 15px; color: var(--primary); line-height: 1.1; }
+.oficio-wordmark-sub { font-size: 9px; font-weight: 700; color: var(--accent); letter-spacing: 0.08em; }
+.oficio-icono-corazon { height: 15px; width: auto; }
+.oficio-tagline { height: 11px; width: auto; }
+.oficio-alcaldia { font-size: 10px; font-weight: 700; color: var(--ink-soft); margin-top: 3px; letter-spacing: 0.02em; }
+
+.oficio-footer {
+  border-top: 1px solid var(--line);
+  padding: 10px 22px 16px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.oficio-footer-banner { height: 34px; width: auto; flex-shrink: 0; }
+.oficio-footer p { font-size: 9.5px; color: var(--muted); margin: 0; line-height: 1.4; }
+
 /* folio ribbon — elemento de firma visual del sistema */
 .folio-card {
   position: relative;

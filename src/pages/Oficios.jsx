@@ -5,6 +5,11 @@ import { downloadTextFile } from "../components/Charts";
 import { useApp } from "../context/AppContext";
 import { useData } from "../context/DataContext";
 import { claveDependenciaUsuario, filtrarPorAlcance } from "../utils/alcance";
+import logoCdmx from "../assets/oficio/logo-cdmx.png";
+import escudoCuajimalpa from "../assets/oficio/escudo-cuajimalpa.png";
+import iconoGobiernoHumano from "../assets/oficio/icono-gobierno-humano.png";
+import taglineGobiernoHumano from "../assets/oficio/tagline-gobierno-humano.png";
+import banner2026 from "../assets/oficio/banner-2026.png";
 
 function tipoDe(tramiteTipo) {
   return TRAMITE_TIPOS.find((t) => t.id === tramiteTipo) || TRAMITE_TIPOS[0];
@@ -133,15 +138,29 @@ export default function Oficios() {
           style={{ position: "fixed", inset: 0, background: "rgba(28,36,48,0.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 20, padding: 20 }}
           onClick={() => setSelected(null)}
         >
-          <div className="card folio-card modal-card" style={{ width: 560 }} onClick={(e) => e.stopPropagation()}>
-            <div style={{ background: "var(--primary)", color: "#fff", padding: "14px 22px", borderRadius: "14px 14px 0 0" }}>
-              <div style={{ fontWeight: 800, fontSize: 15, letterSpacing: "0.02em" }}>GOBIERNO MUNICIPAL</div>
-              <div style={{ fontSize: 11.5, opacity: 0.85 }}>Sistema Integral de Control de Insumos Gubernamentales</div>
+          <div className="card folio-card modal-card oficio-doc" style={{ width: 600 }} onClick={(e) => e.stopPropagation()}>
+            <div className="oficio-header">
+              <img src={logoCdmx} alt="Ciudad de México" className="oficio-logo-cdmx" />
+              <div className="oficio-header-right">
+                <div className="oficio-header-lockup">
+                  <img src={escudoCuajimalpa} alt="Escudo Cuajimalpa" className="oficio-escudo" />
+                  <div>
+                    <div className="oficio-wordmark">Cuajimalpa</div>
+                    <div className="oficio-wordmark-sub">SOMOS FAMILIA</div>
+                  </div>
+                </div>
+                <div className="oficio-header-lockup" style={{ marginTop: 2 }}>
+                  <img src={iconoGobiernoHumano} alt="" className="oficio-icono-corazon" />
+                  <img src={taglineGobiernoHumano} alt="Gobierno Humano, Cercano y de Resultados" className="oficio-tagline" />
+                </div>
+                <div className="oficio-alcaldia">ALCALDÍA CUAJIMALPA DE MORELOS</div>
+              </div>
             </div>
             <div className="card-pad">
               {(() => {
                 const sol = solicitudDe(selected.solicitudFolio);
                 const esOficio = selected.tipo === "Oficio de requerimiento";
+                const destinatario = esOficio && selected.cadena ? pasoActualInfo(selected) : null;
                 return (
                   <>
                     {sol && (
@@ -158,6 +177,14 @@ export default function Oficios() {
                     <h3 style={{ textAlign: "center", fontSize: 14, letterSpacing: "0.04em", margin: "18px 0" }}>
                       {esOficio ? "OFICIO DE REQUERIMIENTO" : selected.tipo.toUpperCase()}
                     </h3>
+
+                    {(destinatario || sol) && (
+                      <div style={{ fontSize: 13, marginBottom: 12 }}>
+                        <div>C. {destinatario ? destinatario.responsable : sol.solicitante}</div>
+                        <div style={{ color: "var(--muted)", fontSize: 12 }}>{destinatario ? destinatario.cargo : sol.area}</div>
+                        <div>Presente.</div>
+                      </div>
+                    )}
 
                     {sol && (
                       <p style={{ fontSize: 13, lineHeight: 1.6 }}>
@@ -220,6 +247,13 @@ export default function Oficios() {
                 <button className="btn btn-ghost" onClick={() => window.print()}>Imprimir</button>
                 <button className="btn btn-ghost" onClick={() => setSelected(null)}>Cerrar</button>
               </div>
+            </div>
+            <div className="oficio-footer">
+              <img src={banner2026} alt="" className="oficio-footer-banner" />
+              <p>
+                Av. José María Castorena núm. 84, Col. Rosa Torres C.P. 05200 Cuajimalpa de Morelos.{" "}
+                www.cuajimalpa.gob.mx
+              </p>
             </div>
           </div>
         </div>
