@@ -503,6 +503,11 @@ a { color: inherit; }
   position: relative;
   overflow: hidden;
 }
+/* un modal con ribbon de folio debe poder hacer scroll de su contenido */
+.folio-card.modal-card {
+  overflow-y: auto;
+  overflow-x: hidden;
+}
 .folio-card::before {
   content: "";
   position: absolute;
